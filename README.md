@@ -1,16 +1,99 @@
-# React + Vite
+# SIFIXA - Mobile & Computer Repair Shop
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+![React](https://img.shields.io/badge/React-18-blue?logo=react)
+![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite)
+![Supabase](https://img.shields.io/badge/Supabase-Database-3ECF8E?logo=supabase)
 
-Currently, two official plugins are available:
+A modern, full-featured web application for a mobile and computer repair shop business. Built with React and Vite, featuring a customer-facing website and staff management portal.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## ✨ Features
 
-## React Compiler
+### Customer Portal
+- 🏠 **Landing Page** - Beautiful hero section with animations, services, testimonials, and more
+- 📅 **Book Repairs** - Multi-step booking form for repair services
+- 🔍 **Track Repairs** - Real-time repair status tracking with timeline
+- 📱 **Sell Devices** - Device buyback submission system
+- 👤 **Customer Dashboard** - View bookings, history, rewards & referrals
+- 🌙 **Dark/Light Mode** - Full theme support
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Staff Portal
+- 👨‍💼 **Admin Dashboard** - Business analytics and management
+- 👷 **Employee Dashboard** - Assigned repairs and task management
+- 📦 **Inventory Management** - Parts and stock tracking
+- 📊 **Analytics** - Business insights and reporting
+- 📝 **CMS** - Content management for website sections
 
-## Expanding the ESLint configuration
+### Technical Features
+- ⚡ **Vite** - Lightning fast build tool
+- 🔐 **Supabase Auth** - Secure authentication with role-based access
+- 📱 **Responsive Design** - Mobile-first approach
+- 🎨 **Modern UI** - Glassmorphism, animations, and premium aesthetics
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js (v18+)
+- npm or yarn
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/bka-dev266/sifixa-website.git
+cd sifixa-website
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Set up environment variables:
+```bash
+cp .env.example .env
+```
+Add your Supabase credentials to `.env`
+
+4. Start the development server:
+```bash
+npm run dev
+```
+
+5. Open http://localhost:5173 in your browser
+
+## 📁 Project Structure
+
+```
+src/
+├── components/       # Shared components
+├── context/          # React context providers
+├── services/         # API services
+├── systems/
+│   ├── customer/     # Customer-facing pages & components
+│   └── staff/        # Staff portal pages & components
+├── styles/           # Global styles
+└── utils/            # Utility functions
+```
+
+## 🛠️ Tech Stack
+
+- **Frontend:** React 18, React Router
+- **Build Tool:** Vite
+- **Database:** Supabase (PostgreSQL)
+- **Authentication:** Supabase Auth
+- **Styling:** CSS with CSS Variables
+- **Icons:** Lucide React
+
+## 🌐 Deployment
+
+This project is deployed using GitHub Pages with GitHub Actions.
+
+**Live Site:** https://bka-dev266.github.io/sifixa-website/
+
+## 📄 License
+
+This project is proprietary software for SIFIXA.
+
+## 👥 Contact
+
+For inquiries, visit [SIFIXA](https://sifixa.com)
