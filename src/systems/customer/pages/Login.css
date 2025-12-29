@@ -1,0 +1,541 @@
+.login-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: var(--bg-primary);
+    position: relative;
+}
+
+.theme-toggle-corner {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+}
+
+.home-link {
+    position: absolute;
+    top: 1.5rem;
+    left: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.home-link:hover {
+    color: var(--primary-color);
+}
+
+.login-container {
+    width: 100%;
+    max-width: 480px;
+    padding: 2.5rem;
+    background: var(--bg-card);
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+/* Auth Tabs */
+.auth-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    padding: 0.25rem;
+    background: var(--bg-secondary);
+    border-radius: 10px;
+}
+
+.auth-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    font-weight: 500;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.auth-tab:hover {
+    color: var(--text-primary);
+}
+
+.auth-tab.active {
+    background: var(--bg-card);
+    color: var(--primary-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.login-container h1 {
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+    font-size: 1.75rem;
+}
+
+.login-container > p {
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    text-align: left;
+}
+
+.login-form .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.login-form .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.login-form label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.login-form label svg {
+    color: var(--primary-color);
+}
+
+.login-form input {
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    transition: border-color 0.2s;
+}
+
+.login-form input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.login-form input::placeholder {
+    color: var(--text-muted, #999);
+}
+
+/* Light theme - enhanced visibility */
+[data-theme="light"] .login-form label {
+    color: #374151;
+}
+
+[data-theme="light"] .login-form input {
+    background: #ffffff;
+    border: 1px solid #c7d2dc;
+    color: #1e293b;
+}
+
+[data-theme="light"] .login-form input:focus {
+    border-color: var(--primary-color);
+    background: #ffffff;
+}
+
+[data-theme="light"] .login-form input::placeholder {
+    color: #9ca3af;
+}
+
+.error-message {
+    background: #fee2e2;
+    color: #dc2626;
+    padding: 0.75rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    text-align: left;
+}
+
+[data-theme="dark"] .error-message {
+    background: rgba(220, 38, 38, 0.15);
+}
+
+.success-message {
+    background: #d1fae5;
+    color: #047857;
+    padding: 0.75rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    text-align: left;
+}
+
+[data-theme="dark"] .success-message {
+    background: rgba(4, 120, 87, 0.15);
+}
+
+.demo-credentials {
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    text-align: left;
+}
+
+.demo-credentials p {
+    margin-bottom: 0.25rem;
+}
+
+.terms-notice {
+    margin-top: 1.5rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.terms-notice a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.terms-notice a:hover {
+    text-decoration: underline;
+}
+
+/* Forgot Password Link */
+.forgot-password-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    font-size: 0.9rem;
+    cursor: pointer;
+    margin-top: 1rem;
+    padding: 0;
+    transition: opacity 0.2s;
+}
+
+.forgot-password-link:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+}
+
+/* Forgot Password Header */
+.forgot-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.forgot-icon {
+    color: var(--primary-color);
+    margin-bottom: 0.75rem;
+}
+
+.forgot-icon.success {
+    color: #10b981;
+}
+
+/* Recovery Method Tabs */
+.recovery-method-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.method-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border: 2px solid var(--border-color);
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: 10px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.method-tab:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.method-tab.active {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1));
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+/* Back to Login Link */
+.back-to-login-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    cursor: pointer;
+    margin-top: 1.5rem;
+    padding: 0;
+    transition: color 0.2s;
+}
+
+.back-to-login-link:hover {
+    color: var(--primary-color);
+}
+
+/* Verification Notice */
+.verification-notice {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1));
+    border: 1px solid var(--primary-color);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+    color: var(--primary-color);
+}
+
+.verification-notice svg {
+    flex-shrink: 0;
+}
+
+/* Verification Input */
+.verification-input {
+    text-align: center;
+    font-size: 1.5rem;
+    letter-spacing: 0.5rem;
+    font-weight: 600;
+}
+
+/* Resend Section */
+.resend-section {
+    text-align: center;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.resend-section p {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.resend-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 0;
+    transition: opacity 0.2s;
+}
+
+.resend-link:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+}
+
+/* Field Indicators */
+.required {
+    color: #ef4444;
+    font-weight: 500;
+}
+
+.optional {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 400;
+}
+
+/* Responsive */
+@media (max-width: 520px) {
+    .login-container {
+        padding: 1.5rem;
+        max-width: 100%;
+    }
+
+    .login-form .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .auth-tab {
+        font-size: 0.85rem;
+        padding: 0.6rem;
+    }
+
+    .auth-tab svg {
+        display: none;
+    }
+
+    .method-tab {
+        font-size: 0.85rem;
+        padding: 0.6rem;
+    }
+}
+
+/* Portal Badge */
+.portal-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 1.5rem;
+}
+
+.portal-badge.customer {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(16, 185, 129, 0.1));
+    color: var(--accent-primary);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.portal-badge.staff {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(236, 72, 153, 0.1));
+    color: #8b5cf6;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+/* Staff Portal Link */
+.staff-portal-link {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+    text-align: center;
+}
+
+.staff-portal-link p {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.staff-portal-link a {
+    color: var(--primary-color);
+    font-weight: 600;
+    text-decoration: none;
+    transition: opacity 0.2s;
+}
+
+.staff-portal-link a:hover {
+    text-decoration: underline;
+}
+
+/* Staff Roles Info */
+.staff-roles-info {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    text-align: left;
+}
+
+.staff-roles-info h4 {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+}
+
+.staff-roles-info ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.staff-roles-info li {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    padding: 0.25rem 0;
+}
+
+.staff-roles-info li strong {
+    color: var(--text-primary);
+}
+
+/* Staff Login Page Specific */
+.staff-login-page {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(236, 72, 153, 0.03));
+}
+
+/* Terms Consent Checkbox */
+.terms-consent {
+    margin: 1rem 0;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+}
+
+.consent-checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    cursor: pointer;
+    position: relative;
+}
+
+.consent-checkbox input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    accent-color: var(--accent-primary);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.consent-text {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.consent-text a {
+    color: var(--accent-primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.consent-text a:hover {
+    text-decoration: underline;
+}
+
+/* Light theme consent */
+[data-theme="light"] .terms-consent {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+[data-theme="light"] .consent-text {
+    color: #475569;
+}

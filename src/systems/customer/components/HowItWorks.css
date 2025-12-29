@@ -1,0 +1,375 @@
+.how-it-works-section {
+    background: transparent;
+    position: relative;
+}
+
+.how-it-works-showcase {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+/* Progress bar at top */
+.service-progress-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 30px;
+}
+
+.service-progress-bar .progress-segment {
+    flex: 1;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.service-progress-bar .progress-segment:hover {
+    transform: scaleY(1.5);
+}
+
+.service-progress-bar .progress-segment.completed .progress-fill {
+    width: 100%;
+    animation: none !important;
+}
+
+.service-progress-bar .progress-fill {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+    border-radius: 10px;
+}
+
+.service-progress-bar .progress-segment.active .progress-fill {
+    animation: progressFillHIW linear forwards;
+}
+
+@keyframes progressFillHIW {
+    from { width: 0; }
+    to { width: 100%; }
+}
+
+/* Service Options Tabs */
+.service-options-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.option-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 28px 20px;
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.option-tab::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.option-tab:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-4px);
+}
+
+.option-tab.active {
+    background: linear-gradient(145deg, rgba(124, 58, 237, 0.15), rgba(139, 92, 246, 0.1));
+    border-color: var(--accent-primary);
+    box-shadow: 0 15px 40px rgba(124, 58, 237, 0.2);
+}
+
+.option-tab.active::before {
+    transform: scaleX(1);
+}
+
+.tab-icon-wrapper {
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(139, 92, 246, 0.1));
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.option-tab.active .tab-icon-wrapper {
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    box-shadow: 0 8px 24px rgba(124, 58, 237, 0.3);
+}
+
+.option-tab svg {
+    color: var(--accent-primary);
+    transition: color 0.3s ease;
+}
+
+.option-tab.active svg {
+    color: white;
+}
+
+.tab-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.tab-desc {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+/* Steps Container */
+.steps-container {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+    backdrop-filter: blur(20px);
+    border-radius: 24px;
+    padding: 50px 40px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.steps-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 30px;
+    position: relative;
+}
+
+/* Step Card */
+.step-card {
+    text-align: center;
+    position: relative;
+    padding: 20px;
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.step-number {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin: 0 auto 16px;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+}
+
+.step-icon {
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.15), rgba(139, 92, 246, 0.1));
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    color: var(--accent-primary);
+    transition: all 0.3s ease;
+}
+
+.step-card:hover .step-icon {
+    transform: scale(1.1);
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.25), rgba(139, 92, 246, 0.2));
+    box-shadow: 0 8px 24px rgba(124, 58, 237, 0.2);
+}
+
+.step-card h4 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.step-card p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    min-height: 2.7em;
+    flex-grow: 1;
+}
+
+.step-arrow {
+    position: absolute;
+    right: -25px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent-primary);
+    opacity: 0.5;
+}
+
+/* Controls */
+.how-it-works-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 30px;
+}
+
+.how-it-works-controls .slide-counter {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    font-family: 'SF Mono', 'Consolas', monospace;
+}
+
+.how-it-works-controls .slide-counter .current {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent-primary);
+}
+
+.how-it-works-controls .slide-counter .separator {
+    font-size: 1rem;
+    color: var(--text-muted);
+}
+
+.how-it-works-controls .slide-counter .total {
+    font-size: 1rem;
+    color: var(--text-muted);
+}
+
+.how-it-works-controls .play-pause-btn {
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.how-it-works-controls .play-pause-btn:hover {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: white;
+}
+
+/* Responsive */
+@media (max-width: 968px) {
+    .service-options-tabs {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .option-tab {
+        flex-direction: row;
+        justify-content: flex-start;
+        text-align: left;
+        padding: 20px 24px;
+        gap: 16px;
+    }
+
+    .option-tab::before {
+        width: 3px;
+        height: 100%;
+        top: 0;
+        left: 0;
+        right: auto;
+        transform: scaleY(0);
+    }
+
+    .option-tab.active::before {
+        transform: scaleY(1);
+    }
+
+    .tab-icon-wrapper {
+        width: 48px;
+        height: 48px;
+        flex-shrink: 0;
+    }
+
+    .tab-title {
+        font-size: 1rem;
+    }
+
+    .steps-container {
+        padding: 30px 20px;
+    }
+
+    .steps-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    .step-arrow {
+        display: none;
+    }
+}
+
+@media (max-width: 600px) {
+    .steps-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .step-card {
+        display: flex;
+        flex-direction: row;
+        text-align: left;
+        gap: 16px;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 16px;
+        min-height: auto;
+        align-items: flex-start;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .step-number {
+        position: absolute;
+        top: -8px;
+        left: -8px;
+        width: 28px;
+        height: 28px;
+        font-size: 0.75rem;
+        margin: 0;
+    }
+
+    .step-icon {
+        width: 56px;
+        height: 56px;
+        flex-shrink: 0;
+        margin: 0;
+    }
+
+    .step-card h4 {
+        font-size: 1rem;
+    }
+
+    .step-card p {
+        font-size: 0.85rem;
+        min-height: auto;
+    }
+}

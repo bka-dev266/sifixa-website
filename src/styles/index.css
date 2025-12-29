@@ -1,0 +1,255 @@
+:root {
+  /* Common Variables */
+  --font-main: 'Inter', system-ui, sans-serif;
+  --transition-speed: 0.3s;
+  --nav-height: 80px;
+}
+
+[data-theme='dark'] {
+  --bg-primary: #0a0f1c;
+  --bg-secondary: #111827;
+  --bg-card: #1a2234;
+  --text-primary: #f3f4f6;
+  --text-secondary: #9ca3af;
+  --accent-primary: #3b82f6;
+  --accent-secondary: #10b981;
+  --accent-glow: rgba(59, 130, 246, 0.5);
+  --card-border: rgba(255, 255, 255, 0.05);
+  --border-color: rgba(255, 255, 255, 0.1);
+  --input-bg: rgba(255, 255, 255, 0.05);
+  --primary-color: #3b82f6;
+  --primary-hover: #2563eb;
+  --gradient-accent-1: rgba(59, 130, 246, 0.12);
+  --gradient-accent-2: rgba(16, 185, 129, 0.10);
+  --gradient-accent-3: rgba(139, 92, 246, 0.08);
+}
+
+[data-theme='light'] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-card: #ffffff;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --accent-primary: #2563eb;
+  --accent-secondary: #059669;
+  --accent-glow: rgba(37, 99, 235, 0.2);
+  --card-border: rgba(0, 0, 0, 0.05);
+  --border-color: rgba(0, 0, 0, 0.1);
+  --input-bg: rgba(0, 0, 0, 0.03);
+  --primary-color: #2563eb;
+  --primary-hover: #1d4ed8;
+  --gradient-accent-1: rgba(37, 99, 235, 0.08);
+  --gradient-accent-2: rgba(5, 150, 105, 0.06);
+  --gradient-accent-3: rgba(124, 58, 237, 0.05);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: linear-gradient(
+    180deg,
+    var(--bg-primary) 0%,
+    var(--bg-secondary) 15%,
+    var(--bg-primary) 30%,
+    var(--bg-secondary) 50%,
+    var(--bg-primary) 70%,
+    var(--bg-secondary) 85%,
+    var(--bg-primary) 100%
+  );
+  background-attachment: fixed;
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  line-height: 1.6;
+  overflow-x: hidden;
+  position: relative;
+  min-height: 100vh;
+}
+
+/* Global gradient overlay */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(ellipse 100% 60% at 0% 10%, var(--gradient-accent-1), transparent 60%),
+    radial-gradient(ellipse 80% 50% at 100% 25%, var(--gradient-accent-2), transparent 55%),
+    radial-gradient(ellipse 90% 50% at 10% 45%, var(--gradient-accent-3), transparent 50%),
+    radial-gradient(ellipse 70% 40% at 90% 55%, var(--gradient-accent-1), transparent 50%),
+    radial-gradient(ellipse 100% 60% at 0% 75%, var(--gradient-accent-2), transparent 60%),
+    radial-gradient(ellipse 80% 50% at 100% 90%, var(--gradient-accent-1), transparent 55%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+  transition: color var(--transition-speed);
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  outline: none;
+  font-family: inherit;
+}
+
+/* Global Form Elements */
+input, select, textarea {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.875rem 1rem;
+  font-family: inherit;
+  font-size: 1rem;
+  transition: border-color var(--transition-speed), background-color var(--transition-speed), box-shadow var(--transition-speed);
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239ca3af' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2.5rem;
+}
+
+select option {
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  padding: 0.5rem;
+}
+
+/* Light Theme Form Elements - Enhanced Visibility */
+[data-theme="light"] input,
+[data-theme="light"] select,
+[data-theme="light"] textarea {
+  background-color: #ffffff;
+  border: 1px solid #c7d2dc;
+  color: #1e293b;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] input:focus,
+[data-theme="light"] select:focus,
+[data-theme="light"] textarea:focus {
+  background-color: #ffffff;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder {
+  color: #9ca3af;
+}
+
+[data-theme="light"] select option {
+  background-color: #ffffff;
+  color: #1e293b;
+  padding: 0.5rem;
+}
+
+/* Light Theme Labels - Enhanced Visibility */
+[data-theme="light"] label {
+  color: #374151;
+}
+
+[data-theme="light"] .form-group label {
+  color: #374151;
+  font-weight: 500;
+}
+
+/* Dark Theme Form Elements */
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background-color: var(--bg-card);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] select option {
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+}
+
+/* Utilities */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
+.section-padding {
+  padding: 80px 0;
+}
+
+/* Mobile Responsive Globals */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 15px;
+  }
+
+  .section-padding {
+    padding: 50px 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 0 12px;
+  }
+
+  .section-padding {
+    padding: 40px 0;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 100, 100, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-primary);
+}
+
+/* Hide scrollbar for Firefox */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 100, 100, 0.3) transparent;
+}

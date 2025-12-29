@@ -1,0 +1,50 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.main-content {
+  flex: 1;
+  padding-top: var(--nav-height);
+  overflow-x: hidden;
+  border: none;
+  outline: none;
+}
+
+.main-content.no-nav {
+  padding-top: 0;
+}
+
+.main-content::before,
+.main-content::after {
+  display: none;
+}
+
+html {
+  overflow-x: hidden;
+}
+
+/* Remove any potential outline/border artifacts */
+.page-content {
+  border: none;
+  outline: none;
+  box-shadow: none;
+}
+
+.page-content::before,
+.page-content::after {
+  display: none;
+}
+
+.container.section-padding {
+  border: none;
+  outline: none;
+}
+
+.container.section-padding::before,
+.container.section-padding::after {
+  display: none;
+}
+

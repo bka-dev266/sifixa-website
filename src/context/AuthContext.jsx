@@ -1,0 +1,230 @@
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import * as authService from '../services/authService';
+
+const AuthContext = createContext(null);
+
+// Session timeout in milliseconds (30 minutes)
+const SESSION_TIMEOUT = 30 * 60 * 1000;
+const SESSION_CHECK_INTERVAL = 60 * 1000; // Check every minute
+
+export const AuthProvider = ({ children }) => {
+    const [user, setUser] = useState(null);           // Supabase auth user
+    const [profile, setProfile] = useState(null);     // DB profile
+    const [role, setRole] = useState(null);           // Primary role (admin/employee/customer)
+    const [loading, setLoading] = useState(true);
+    const [sessionExpiry, setSessionExpiry] = useState(null);
+    const [lastActivity, setLastActivity] = useState(Date.now());
+
+    // Load user profile and role from database
+    const loadUserData = useCallback(async (authUser) => {
+        if (!authUser) {
+            setProfile(null);
+            setRole(null);
+            return;
+        }
+
+        try {
+            const [userProfile, primaryRole] = await Promise.all([
+                authService.getProfile(authUser.id),
+                authService.getPrimaryRole(authUser.id)
+            ]);
+
+            setProfile(userProfile);
+            setRole(primaryRole);
+        } catch (error) {
+            console.error('Error loading user data:', error);
+            setProfile(null);
+            setRole('customer'); // Default fallback
+        }
+    }, []);
+
+    // Initialize auth state from Supabase session
+    useEffect(() => {
+        const initAuth = async () => {
+            try {
+                const session = await authService.getSession();
+                if (session?.user) {
+                    setUser(session.user);
+                    await loadUserData(session.user);
+                    setSessionExpiry(Date.now() + SESSION_TIMEOUT);
+                }
+            } catch (error) {
+                console.error('Auth init error:', error);
+            }
+            setLoading(false);
+        };
+
+        initAuth();
+
+        // Listen for auth state changes
+        const { data: { subscription } } = authService.onAuthStateChange(
+            async (event, session) => {
+                console.log('Auth state changed:', event);
+
+                if (event === 'SIGNED_IN' && session?.user) {
+                    setUser(session.user);
+                    await loadUserData(session.user);
+                    setSessionExpiry(Date.now() + SESSION_TIMEOUT);
+                } else if (event === 'SIGNED_OUT') {
+                    setUser(null);
+                    setProfile(null);
+                    setRole(null);
+                    setSessionExpiry(null);
+                }
+            }
+        );
+
+        return () => subscription.unsubscribe();
+    }, [loadUserData]);
+
+    // Session expiry checker
+    useEffect(() => {
+        if (!user) return;
+
+        const checkSession = () => {
+            const now = Date.now();
+            const inactivityTime = now - lastActivity;
+
+            if (inactivityTime >= SESSION_TIMEOUT) {
+                logout();
+                return;
+            }
+
+            // Update session expiry
+            const newExpiry = now + SESSION_TIMEOUT;
+            setSessionExpiry(newExpiry);
+        };
+
+        const interval = setInterval(checkSession, SESSION_CHECK_INTERVAL);
+        return () => clearInterval(interval);
+    }, [user, lastActivity]);
+
+    // Activity listener - extend session on user activity
+    useEffect(() => {
+        if (!user) return;
+
+        const updateActivity = () => {
+            const now = Date.now();
+            setLastActivity(now);
+            const newExpiry = now + SESSION_TIMEOUT;
+            setSessionExpiry(newExpiry);
+        };
+
+        // Listen for user activity
+        const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+        events.forEach(event => {
+            window.addEventListener(event, updateActivity, { passive: true });
+        });
+
+        return () => {
+            events.forEach(event => {
+                window.removeEventListener(event, updateActivity);
+            });
+        };
+    }, [user]);
+
+    const login = async (email, password) => {
+        try {
+            const { user: authUser } = await authService.signIn(email, password);
+            const now = Date.now();
+            const expiry = now + SESSION_TIMEOUT;
+
+            setUser(authUser);
+            await loadUserData(authUser);
+            setSessionExpiry(expiry);
+            setLastActivity(now);
+
+            return { success: true, user: authUser };
+        } catch (error) {
+            console.error('Login error:', error);
+            return { success: false, error: error.message };
+        }
+    };
+
+    const signup = async (email, password, metadata = {}) => {
+        try {
+            const { user: authUser } = await authService.signUp(email, password, metadata);
+
+            // Note: User may need to verify email depending on Supabase settings
+            if (authUser) {
+                setUser(authUser);
+                await loadUserData(authUser);
+            }
+
+            return { success: true, user: authUser };
+        } catch (error) {
+            console.error('Signup error:', error);
+            return { success: false, error: error.message };
+        }
+    };
+
+    const logout = useCallback(async () => {
+        try {
+            await authService.signOut();
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
+        setUser(null);
+        setProfile(null);
+        setRole(null);
+        setSessionExpiry(null);
+    }, []);
+
+    const updateUser = async (updates) => {
+        if (!user) return;
+
+        try {
+            const updatedProfile = await authService.updateProfile(user.id, updates);
+            setProfile(updatedProfile);
+            return { success: true, profile: updatedProfile };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    };
+
+    const getSessionInfo = () => {
+        if (!sessionExpiry) return null;
+        const remainingMs = sessionExpiry - Date.now();
+        const remainingMinutes = Math.max(0, Math.floor(remainingMs / 60000));
+        return {
+            expiresAt: new Date(sessionExpiry).toLocaleTimeString(),
+            remainingMinutes
+        };
+    };
+
+    // Computed properties for convenience
+    const isAuthenticated = !!user;
+    const isAdmin = role === 'admin';
+    const isEmployee = role === 'employee' || role === 'admin';
+    const isStaff = isEmployee;
+    const isCustomer = role === 'customer';
+
+    return (
+        <AuthContext.Provider value={{
+            // State
+            user,
+            profile,
+            role,
+            loading,
+            sessionExpiry,
+
+            // Computed
+            isAuthenticated,
+            isAdmin,
+            isEmployee,
+            isStaff,
+            isCustomer,
+
+            // Actions
+            login,
+            signup,
+            logout,
+            updateUser,
+            getSessionInfo
+        }}>
+            {!loading && children}
+        </AuthContext.Provider>
+    );
+};
+
+export const useAuth = () => useContext(AuthContext);
