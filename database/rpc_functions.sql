@@ -4,6 +4,18 @@
 -- These are PostgreSQL functions called via supabase.rpc()
 -- ====================================================
 
+-- Drop all existing functions first
+DROP FUNCTION IF EXISTS generate_tracking_number() CASCADE;
+DROP FUNCTION IF EXISTS create_booking CASCADE;
+DROP FUNCTION IF EXISTS search_bookings CASCADE;
+DROP FUNCTION IF EXISTS get_booking CASCADE;
+DROP FUNCTION IF EXISTS update_booking_status CASCADE;
+DROP FUNCTION IF EXISTS void_booking CASCADE;
+DROP FUNCTION IF EXISTS get_booking_by_tracking CASCADE;
+DROP FUNCTION IF EXISTS create_customer CASCADE;
+DROP FUNCTION IF EXISTS search_customers CASCADE;
+DROP FUNCTION IF EXISTS update_customer CASCADE;
+
 -- ==================== BOOKING FUNCTIONS ====================
 
 -- Generate tracking number
