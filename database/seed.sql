@@ -347,10 +347,10 @@ ON CONFLICT DO NOTHING;
 -- ============================================================
 
 INSERT INTO landing_gallery (title, before_image, after_image, description, device_type, display_order) VALUES
-('iPhone 14 Pro Screen Repair', 'gallery/iphone-before-1.jpg', 'gallery/iphone-after-1.jpg', 'Severely cracked screen replaced with OEM quality display. 45 minute repair.', 'phone', 1),
-('MacBook Pro Water Damage', 'gallery/macbook-before-1.jpg', 'gallery/macbook-after-1.jpg', 'Complete water damage restoration including keyboard and logic board repair.', 'laptop', 2),
-('Samsung S23 Battery Replacement', 'gallery/samsung-before-1.jpg', 'gallery/samsung-after-1.jpg', 'Swollen battery safely replaced. Device back to full health.', 'phone', 3),
-('iPad Pro Screen Repair', 'gallery/ipad-before-1.jpg', 'gallery/ipad-after-1.jpg', 'Shattered glass replaced with original Apple display.', 'tablet', 4)
+('iPhone 14 Pro Screen Repair', 'gallery/phone-before.png', 'gallery/phone-after.png', 'Severely cracked screen replaced with OEM quality display. 45 minute repair.', 'phone', 1),
+('MacBook Pro Water Damage', 'gallery/laptop-before.png', 'gallery/laptop-after.png', 'Complete water damage restoration including keyboard and logic board repair.', 'laptop', 2),
+('Samsung S23 Battery Replacement', 'gallery/samsung-before.png', 'gallery/samsung-after.png', 'Swollen battery safely replaced. Device back to full health.', 'phone', 3),
+('iPad Pro Screen Repair', 'gallery/ipad-before.png', 'gallery/ipad-after.png', 'Shattered glass replaced with original Apple display.', 'tablet', 4)
 ON CONFLICT DO NOTHING;
 
 -- ============================================================

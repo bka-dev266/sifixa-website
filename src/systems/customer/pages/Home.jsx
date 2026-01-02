@@ -29,6 +29,7 @@ const Home = () => {
         const loadContent = async () => {
             try {
                 const data = await getLanding();
+                console.log('Landing Data:', data); // Debug logging
                 setLanding(data);
             } catch (error) {
                 console.error('Failed to load landing content:', error);
@@ -45,10 +46,16 @@ const Home = () => {
     const ctaSection = getSection('cta');
 
     // Services from DB or defaults
-    const services = landing?.services?.length > 0 ? landing.services.map(s => ({
-        ...s,
-        image: getAssetUrl(s.image?.replace(/^\//, '') || 'smartphone-repair.png')
-    })) : [
+    const services = landing?.services?.length > 0 ? landing.services.map(s => {
+        // Robust image handling: remove leading slash if present, fallback to default
+        const imagePath = s.image ? s.image.replace(/^\//, '') : 'smartphone-repair.png';
+        return {
+            ...s,
+            image: getAssetUrl(imagePath),
+            // Ensure icon exists, fallback to Smartphone if missing
+            icon: s.icon || 'Smartphone'
+        };
+    }) : [
         { title: 'Smartphone Repair', description: 'Screen replacement, battery, charging port, camera and more.', icon: 'Smartphone', image: getAssetUrl('smartphone-repair.png') },
         { title: 'Tablet Repair', description: 'iPad, Samsung Tab, and other tablet repairs with genuine parts.', icon: 'Tablet', image: getAssetUrl('tablet-repair.png') },
         { title: 'Computer Repair', description: 'Laptop screen, keyboard, battery, SSD upgrades, and more.', icon: 'Laptop', image: getAssetUrl('computer-repair.png') }

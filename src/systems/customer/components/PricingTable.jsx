@@ -63,6 +63,7 @@ const PricingTable = ({ sectionHeader, loading: propLoading }) => {
         const loadPricing = async () => {
             try {
                 const data = await getPricing();
+                console.log('Pricing Data:', data); // Debug logging
                 setPricingData(data.length > 0 ? data : defaultPricingData);
             } catch (error) {
                 console.error('Failed to load pricing:', error);
@@ -74,6 +75,16 @@ const PricingTable = ({ sectionHeader, loading: propLoading }) => {
     }, []);
 
     const isLoading = propLoading || loading;
+
+    // Helper to get icon safely
+    const getIcon = (iconName) => {
+        if (!iconName) return Smartphone;
+        // Direct match
+        if (iconMap[iconName]) return iconMap[iconName];
+        // Case-insensitive match
+        const key = Object.keys(iconMap).find(k => k.toLowerCase() === iconName.toLowerCase());
+        return key ? iconMap[key] : Smartphone;
+    };
 
     return (
         <section className="pricing-section section-padding">
@@ -95,7 +106,7 @@ const PricingTable = ({ sectionHeader, loading: propLoading }) => {
                 ) : (
                     <div className="pricing-grid">
                         {pricingData.map((cat, index) => {
-                            const Icon = iconMap[cat.icon] || Smartphone;
+                            const Icon = getIcon(cat.icon);
                             return (
                                 <motion.div
                                     key={cat.id || cat.category}

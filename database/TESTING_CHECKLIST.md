@@ -15,9 +15,9 @@ Run these SQL files in Supabase SQL Editor in order:
 
 | Test | Steps | Expected Result | Status |
 |------|-------|-----------------|--------|
-| Page Load | Go to `http://localhost:5173/` | Hero, Services, Testimonials, FAQ load | ⬜ |
+| Page Load | Go to `http://localhost:5173/` | Hero, Services, Testimonials, FAQ load | ❌ |
 | Hero Content | Check hero section | Shows title, subtitle from database | ⬜ |
-| Services Section | Scroll to services | Shows 3+ service cards | ⬜ |
+| Services Section | Scroll to services | Shows 3+ service cards | ❌ |
 | Testimonials | Scroll to testimonials | Shows customer reviews | ⬜ |
 | FAQ | Scroll to FAQ | Accordion items work | ⬜ |
 | Navigation | Click nav links | Routes work correctly | ⬜ |
@@ -145,7 +145,7 @@ Run these SQL files in Supabase SQL Editor in order:
 
 ## ✅ Completion Checklist
 
-- [ ] All homepage tests pass
+- [/] All homepage tests pass
 - [ ] Booking flow works end-to-end
 - [ ] Tracking system finds bookings
 - [ ] Customer auth works
