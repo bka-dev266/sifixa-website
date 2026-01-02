@@ -5,17 +5,17 @@
 -- ====================================================
 
 -- Drop existing functions first (if they exist)
-DROP FUNCTION IF EXISTS generate_tracking_number();
-DROP FUNCTION IF EXISTS create_booking(text,text,text,text,text,text,date,uuid,text,text,uuid);
-DROP FUNCTION IF EXISTS search_bookings(text,text,date,date,uuid,integer,integer);
-DROP FUNCTION IF EXISTS get_booking(uuid);
-DROP FUNCTION IF EXISTS update_booking_status(uuid,text,text);
-DROP FUNCTION IF EXISTS void_booking(uuid,text);
-DROP FUNCTION IF EXISTS create_customer(text,text,text,text,text,text,text,text,text);
-DROP FUNCTION IF EXISTS search_customers(text,integer,integer);
-DROP FUNCTION IF EXISTS update_customer(uuid,text,text,text,text,text,text,text,text,text);
-DROP FUNCTION IF EXISTS adjust_inventory(uuid,integer,text,uuid);
-DROP FUNCTION IF EXISTS get_booking_by_tracking(text);
+DROP FUNCTION IF EXISTS generate_tracking_number() CASCADE;
+DROP FUNCTION IF EXISTS create_booking CASCADE;
+DROP FUNCTION IF EXISTS search_bookings CASCADE;
+DROP FUNCTION IF EXISTS get_booking CASCADE;
+DROP FUNCTION IF EXISTS update_booking_status CASCADE;
+DROP FUNCTION IF EXISTS void_booking CASCADE;
+DROP FUNCTION IF EXISTS create_customer CASCADE;
+DROP FUNCTION IF EXISTS search_customers CASCADE;
+DROP FUNCTION IF EXISTS update_customer CASCADE;
+DROP FUNCTION IF EXISTS adjust_inventory CASCADE;
+DROP FUNCTION IF EXISTS get_booking_by_tracking CASCADE;
 
 -- ==================== BOOKING FUNCTIONS ====================
 
