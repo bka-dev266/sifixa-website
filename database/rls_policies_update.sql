@@ -45,14 +45,17 @@ DROP POLICY IF EXISTS "Public insert customers" ON customers;
 DROP POLICY IF EXISTS "Staff full access customers" ON customers;
 
 -- Allow anonymous to create customers (for booking without login)
+DROP POLICY IF EXISTS "Public insert customers" ON customers;
 CREATE POLICY "Public insert customers" ON customers 
 FOR INSERT TO anon, authenticated WITH CHECK (true);
 
 -- Allow authenticated to read all customers
+DROP POLICY IF EXISTS "Authenticated read customers" ON customers;
 CREATE POLICY "Authenticated read customers" ON customers 
 FOR SELECT TO authenticated USING (deleted_at IS NULL);
 
 -- Allow staff to update/delete customers
+DROP POLICY IF EXISTS "Staff manage customers" ON customers;
 CREATE POLICY "Staff manage customers" ON customers 
 FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
@@ -61,14 +64,17 @@ DROP POLICY IF EXISTS "Public insert devices" ON devices;
 DROP POLICY IF EXISTS "Staff full access devices" ON devices;
 
 -- Allow anonymous to create devices (for booking)
+DROP POLICY IF EXISTS "Public insert devices" ON devices;
 CREATE POLICY "Public insert devices" ON devices 
 FOR INSERT TO anon, authenticated WITH CHECK (true);
 
 -- Allow reading devices
+DROP POLICY IF EXISTS "Authenticated read devices" ON devices;
 CREATE POLICY "Authenticated read devices" ON devices 
 FOR SELECT TO authenticated USING (true);
 
 -- Staff can manage all devices
+DROP POLICY IF EXISTS "Staff manage devices" ON devices;
 CREATE POLICY "Staff manage devices" ON devices 
 FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
@@ -77,14 +83,17 @@ DROP POLICY IF EXISTS "Public insert appointments" ON appointments;
 DROP POLICY IF EXISTS "Staff full access appointments" ON appointments;
 
 -- Allow anonymous to create appointments (booking)
+DROP POLICY IF EXISTS "Public insert appointments" ON appointments;
 CREATE POLICY "Public insert appointments" ON appointments 
 FOR INSERT TO anon, authenticated WITH CHECK (true);
 
 -- Allow anonymous to read own appointment by tracking number (handled in RPC)
+DROP POLICY IF EXISTS "Authenticated read appointments" ON appointments;
 CREATE POLICY "Authenticated read appointments" ON appointments 
 FOR SELECT TO authenticated USING (true);
 
 -- Staff can manage all appointments
+DROP POLICY IF EXISTS "Staff manage appointments" ON appointments;
 CREATE POLICY "Staff manage appointments" ON appointments 
 FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
@@ -98,6 +107,7 @@ FOR INSERT TO anon, authenticated WITH CHECK (true);
 CREATE POLICY "Authenticated read conversations" ON conversations 
 FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Staff manage conversations" ON conversations;
 CREATE POLICY "Staff manage conversations" ON conversations 
 FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
@@ -111,6 +121,7 @@ FOR INSERT TO anon, authenticated WITH CHECK (true);
 CREATE POLICY "Authenticated read messages" ON messages 
 FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Staff manage messages" ON messages;
 CREATE POLICY "Staff manage messages" ON messages 
 FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
@@ -169,48 +180,31 @@ CREATE POLICY "Staff manage stock" ON stock_levels
 FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 -- ==================== LANDING PAGE TABLES ====================
--- These should already have public read policies from setup
+-- Use simple USING (true) since some tables may not have is_active
 
--- Ensure landing_hero has public read
 DROP POLICY IF EXISTS "Public read landing_hero" ON landing_hero;
-CREATE POLICY "Public read landing_hero" ON landing_hero 
-FOR SELECT USING (is_active = true);
+CREATE POLICY "Public read landing_hero" ON landing_hero FOR SELECT USING (true);
 
--- Ensure landing_services has public read
 DROP POLICY IF EXISTS "Public read landing_services" ON landing_services;
-CREATE POLICY "Public read landing_services" ON landing_services 
-FOR SELECT USING (is_active = true);
+CREATE POLICY "Public read landing_services" ON landing_services FOR SELECT USING (true);
 
--- Ensure landing_testimonials has public read
 DROP POLICY IF EXISTS "Public read landing_testimonials" ON landing_testimonials;
-CREATE POLICY "Public read landing_testimonials" ON landing_testimonials 
-FOR SELECT USING (is_active = true);
+CREATE POLICY "Public read landing_testimonials" ON landing_testimonials FOR SELECT USING (true);
 
--- Ensure landing_faq has public read
 DROP POLICY IF EXISTS "Public read landing_faq" ON landing_faq;
-CREATE POLICY "Public read landing_faq" ON landing_faq 
-FOR SELECT USING (is_active = true);
+CREATE POLICY "Public read landing_faq" ON landing_faq FOR SELECT USING (true);
 
--- Ensure landing_sections has public read
 DROP POLICY IF EXISTS "Public read landing_sections" ON landing_sections;
-CREATE POLICY "Public read landing_sections" ON landing_sections 
-FOR SELECT USING (is_active = true);
+CREATE POLICY "Public read landing_sections" ON landing_sections FOR SELECT USING (true);
 
--- Ensure landing_pricing has public read
 DROP POLICY IF EXISTS "Public read landing_pricing" ON landing_pricing;
-CREATE POLICY "Public read landing_pricing" ON landing_pricing 
-FOR SELECT USING (is_active = true);
+CREATE POLICY "Public read landing_pricing" ON landing_pricing FOR SELECT USING (true);
 
--- Ensure landing_pricing_items has public read
 DROP POLICY IF EXISTS "Public read landing_pricing_items" ON landing_pricing_items;
-CREATE POLICY "Public read landing_pricing_items" ON landing_pricing_items 
-FOR SELECT USING (is_active = true);
+CREATE POLICY "Public read landing_pricing_items" ON landing_pricing_items FOR SELECT USING (true);
 
--- Ensure landing_gallery has RLS and policies
-ALTER TABLE landing_gallery ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public read landing_gallery" ON landing_gallery;
-CREATE POLICY "Public read landing_gallery" ON landing_gallery 
-FOR SELECT USING (is_active = true);
+CREATE POLICY "Public read landing_gallery" ON landing_gallery FOR SELECT USING (true);
 
 -- Admin write for all landing tables
 DROP POLICY IF EXISTS "Admin write landing_hero" ON landing_hero;
