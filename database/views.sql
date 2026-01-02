@@ -20,7 +20,6 @@ SELECT
     c.state,
     c.zip,
     c.notes,
-    c.is_active,
     c.created_at,
     c.updated_at,
     -- Stats
