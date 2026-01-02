@@ -22,21 +22,27 @@ export const AuthProvider = ({ children }) => {
 
     // Load user profile and role from database
     const loadUserData = useCallback(async (authUser) => {
+        console.log('loadUserData called with:', authUser?.id);
+
         if (!authUser) {
+            console.log('No authUser, setting null');
             setProfile(null);
             setRole(null);
             return;
         }
 
         try {
-            const [userProfile, roleData] = await Promise.all([
-                authService.getProfile(authUser.id),
-                authService.getPrimaryRole(authUser.id)
-            ]);
+            console.log('Fetching profile and role...');
+
+            const userProfile = await authService.getProfile(authUser.id);
+            console.log('Profile fetched:', userProfile);
+
+            const roleData = await authService.getPrimaryRole(authUser.id);
+            console.log('Role fetched:', roleData);
 
             setProfile(userProfile);
-            // roleData is now { name: string, isStaff: boolean }
             setRole(roleData);
+            console.log('Auth data set successfully');
         } catch (error) {
             console.error('Error loading user data:', error);
             setProfile(null);
