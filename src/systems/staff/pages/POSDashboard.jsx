@@ -3,7 +3,6 @@ import { useAuth } from '../../../context/AuthContext';
 import { useNotifications } from '../../../context/NotificationContext';
 import { NotificationBell } from '../../../components/Notifications';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../../../services/apiClient';
 import { mockApi } from '../../../services/mockApi'; // Keep for legacy operations
 import {
     ShoppingCart, Plus, Minus, Trash2, DollarSign, CreditCard,
@@ -16,7 +15,7 @@ import './POSDashboard.css';
 
 const POSDashboard = () => {
     const { user, logout } = useAuth();
-    const { addNotification } = useNotifications();
+    useNotifications(); // Initialize notifications
     const navigate = useNavigate();
 
     const [activeView, setActiveView] = useState('pos');
@@ -27,8 +26,8 @@ const POSDashboard = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('all');
     const [loading, setLoading] = useState(true);
-    const [autoRefresh, setAutoRefresh] = useState(true);
-    const [lastUpdate, setLastUpdate] = useState(new Date());
+    const [, setAutoRefresh] = useState(true);
+    const [, setLastUpdate] = useState(new Date());
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
     // Cart state
@@ -46,19 +45,6 @@ const POSDashboard = () => {
     const [lastSale, setLastSale] = useState(null);
 
     const TAX_RATE = 0.08; // 8% tax
-
-    useEffect(() => {
-        loadData();
-    }, []);
-
-    // Auto-refresh every 30 seconds
-    useEffect(() => {
-        if (!autoRefresh) return;
-        const interval = setInterval(() => {
-            loadData(false);
-        }, 30000);
-        return () => clearInterval(interval);
-    }, [autoRefresh]);
 
     const loadData = async (showLoading = true) => {
         if (showLoading) setLoading(true);
@@ -79,6 +65,12 @@ const POSDashboard = () => {
         }
         if (showLoading) setLoading(false);
     };
+
+    useEffect(() => {
+        loadData();
+    }, []);
+
+
 
 
     const handleLogout = () => {

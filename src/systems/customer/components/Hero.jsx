@@ -6,7 +6,7 @@ import Button from '../../../components/Button';
 import heroImage from '../../../assets/images/hero-repair.png';
 import './Hero.css';
 
-const Hero = ({ hero, loading }) => {
+const Hero = ({ hero }) => {
     const heroRef = useRef(null);
     const isInView = useInView(heroRef, { once: true, margin: "-100px" });
 
@@ -54,19 +54,6 @@ const Hero = ({ hero, loading }) => {
             transition: {
                 delay: 0.6 + (custom * 0.15),
                 duration: 0.6,
-                ease: [0.25, 0.46, 0.45, 0.94]
-            }
-        })
-    };
-
-    const letterVariants = {
-        hidden: { opacity: 0, y: 50 },
-        visible: (i) => ({
-            opacity: 1,
-            y: 0,
-            transition: {
-                delay: 0.3 + (i * 0.03),
-                duration: 0.5,
                 ease: [0.25, 0.46, 0.45, 0.94]
             }
         })

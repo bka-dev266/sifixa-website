@@ -6,9 +6,9 @@ import WhyChooseUs from '../components/WhyChooseUs';
 import PricingTable from '../components/PricingTable';
 import BeforeAfterGallery from '../components/BeforeAfterGallery';
 import Testimonials from '../components/Testimonials';
-import FAQ from '../components/FAQ';
 import { ArrowRight, Smartphone, Laptop, Tablet, DollarSign } from 'lucide-react';
 import { getLanding } from '../../../services/landingService';
+import { getAssetUrl } from '../../../utils/assets';
 import './Home.css';
 
 // Icon mapping
@@ -45,10 +45,13 @@ const Home = () => {
     const ctaSection = getSection('cta');
 
     // Services from DB or defaults
-    const services = landing?.services?.length > 0 ? landing.services : [
-        { title: 'Smartphone Repair', description: 'Screen replacement, battery, charging port, camera and more.', icon: 'Smartphone', image: '/smartphone-repair.png' },
-        { title: 'Tablet Repair', description: 'iPad, Samsung Tab, and other tablet repairs with genuine parts.', icon: 'Tablet', image: '/tablet-repair.png' },
-        { title: 'Computer Repair', description: 'Laptop screen, keyboard, battery, SSD upgrades, and more.', icon: 'Laptop', image: '/computer-repair.png' }
+    const services = landing?.services?.length > 0 ? landing.services.map(s => ({
+        ...s,
+        image: getAssetUrl(s.image?.replace(/^\//, '') || 'smartphone-repair.png')
+    })) : [
+        { title: 'Smartphone Repair', description: 'Screen replacement, battery, charging port, camera and more.', icon: 'Smartphone', image: getAssetUrl('smartphone-repair.png') },
+        { title: 'Tablet Repair', description: 'iPad, Samsung Tab, and other tablet repairs with genuine parts.', icon: 'Tablet', image: getAssetUrl('tablet-repair.png') },
+        { title: 'Computer Repair', description: 'Laptop screen, keyboard, battery, SSD upgrades, and more.', icon: 'Laptop', image: getAssetUrl('computer-repair.png') }
     ];
 
     return (
@@ -81,7 +84,7 @@ const Home = () => {
                                 return (
                                     <Link to={service.link || '/services'} className="service-showcase-card" key={service.id || index}>
                                         <div className="service-card-image">
-                                            <img src={service.image || '/smartphone-repair.png'} alt={service.title} />
+                                            <img src={service.image || getAssetUrl('smartphone-repair.png')} alt={service.title} />
                                             <div className="service-card-overlay"></div>
                                         </div>
                                         <div className="service-card-content">
@@ -151,8 +154,6 @@ const Home = () => {
             </section>
 
             <Testimonials testimonials={landing?.testimonials} loading={loading} />
-
-            <FAQ faqItems={landing?.faq} loading={loading} />
         </div>
     );
 };

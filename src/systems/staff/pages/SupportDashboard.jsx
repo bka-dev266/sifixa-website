@@ -17,7 +17,7 @@ import './SupportDashboard.css';
 
 const SupportDashboard = () => {
     const { user, logout } = useAuth();
-    const { addNotification } = useNotifications();
+    useNotifications(); // Initialize notifications
     const navigate = useNavigate();
 
     const [activeTab, setActiveTab] = useState('dashboard');
@@ -43,19 +43,6 @@ const SupportDashboard = () => {
     const [messageContent, setMessageContent] = useState('');
     const [sending, setSending] = useState(false);
 
-    useEffect(() => {
-        loadData();
-    }, []);
-
-    // Auto-refresh every 30 seconds
-    useEffect(() => {
-        if (!autoRefresh) return;
-        const interval = setInterval(() => {
-            loadData(false);
-        }, 30000);
-        return () => clearInterval(interval);
-    }, [autoRefresh]);
-
     const loadData = async (showLoading = true) => {
         if (showLoading) setLoading(true);
         try {
@@ -77,6 +64,20 @@ const SupportDashboard = () => {
         }
         if (showLoading) setLoading(false);
     };
+
+    useEffect(() => {
+        loadData();
+    }, []);
+
+    // Auto-refresh every 30 seconds
+    useEffect(() => {
+        if (!autoRefresh) return;
+        const interval = setInterval(() => {
+            loadData(false);
+        }, 30000);
+        return () => clearInterval(interval);
+    }, [autoRefresh]);
+
 
 
     const handleLogout = () => {

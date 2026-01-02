@@ -29,6 +29,7 @@ export const validatePrice = (value) => {
 // Validate text - remove potentially dangerous characters
 export const validateText = (value) => {
     // Remove control characters and null bytes
+    // eslint-disable-next-line no-control-regex
     return value.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
 };
 

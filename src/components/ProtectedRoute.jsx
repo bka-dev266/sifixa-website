@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
-    const { user, role, loading } = useAuth();
+    const { user, role, loading, isStaff, isAdmin } = useAuth();
 
     // Wait for auth to load
     if (loading) {
@@ -18,12 +18,30 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
         return <Navigate to="/staff/login" replace />;
     }
 
-    if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
+    const roleName = role?.name || 'customer';
+
+    // Check if user has permission
+    // Map 'employee' allowedRole to all staff roles for backwards compatibility
+    const hasPermission = allowedRoles.some(allowed => {
+        if (allowed === 'employee') {
+            // 'employee' means any staff member
+            return isStaff;
+        }
+        if (allowed === 'admin') {
+            return roleName === 'admin';
+        }
+        if (allowed === 'customer') {
+            return !isStaff;
+        }
+        // Direct role name match (support, technician, cashier, manager, inventory, sales)
+        return roleName === allowed || (isStaff && ['support', 'technician', 'cashier', 'manager', 'inventory', 'sales'].includes(allowed) && isAdmin);
+    });
+
+    if (allowedRoles.length > 0 && !hasPermission) {
         // Redirect to appropriate dashboard if logged in but wrong role
-        if (role === 'admin') return <Navigate to="/admin" replace />;
-        if (role === 'employee') return <Navigate to="/employee" replace />;
-        if (role === 'customer') return <Navigate to="/customer/profile" replace />;
-        return <Navigate to="/" replace />;
+        if (isAdmin) return <Navigate to="/admin" replace />;
+        if (isStaff) return <Navigate to="/employee" replace />;
+        return <Navigate to="/customer/profile" replace />;
     }
 
     return children;

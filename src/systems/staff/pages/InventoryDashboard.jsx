@@ -3,7 +3,6 @@ import { useAuth } from '../../../context/AuthContext';
 import { useNotifications } from '../../../context/NotificationContext';
 import { NotificationBell } from '../../../components/Notifications';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../../../services/apiClient';
 import { mockApi } from '../../../services/mockApi'; // Keep for legacy operations
 import {
     Package, Plus, Search, AlertTriangle, TrendingUp, TrendingDown,
@@ -15,7 +14,7 @@ import './InventoryDashboard.css';
 
 const InventoryDashboard = () => {
     const { user, logout } = useAuth();
-    const { addNotification } = useNotifications();
+    useNotifications(); // Initialize notifications
     const navigate = useNavigate();
 
     const [activeTab, setActiveTab] = useState('dashboard');
@@ -36,26 +35,13 @@ const InventoryDashboard = () => {
     const [editingItem, setEditingItem] = useState(null);
     const [editForm, setEditForm] = useState({});
 
-    // PO modal state
-    const [showPOModal, setShowPOModal] = useState(false);
-    const [poForm, setPOForm] = useState({
+    // PO modal state - reserved for future use
+    const [, setShowPOModal] = useState(false);
+    const [, setPOForm] = useState({
         supplier: '',
         items: [],
         notes: ''
     });
-
-    useEffect(() => {
-        loadData();
-    }, []);
-
-    // Auto-refresh every 30 seconds
-    useEffect(() => {
-        if (!autoRefresh) return;
-        const interval = setInterval(() => {
-            loadData(false);
-        }, 30000);
-        return () => clearInterval(interval);
-    }, [autoRefresh]);
 
     const loadData = async (showLoading = true) => {
         if (showLoading) setLoading(true);
@@ -79,12 +65,27 @@ const InventoryDashboard = () => {
         if (showLoading) setLoading(false);
     };
 
+    useEffect(() => {
+        loadData();
+    }, []);
+
+    // Auto-refresh every 30 seconds
+    useEffect(() => {
+        if (!autoRefresh) return;
+        const interval = setInterval(() => {
+            loadData(false);
+        }, 30000);
+        return () => clearInterval(interval);
+    }, [autoRefresh]);
+
+
 
     const handleLogout = () => {
         logout();
         navigate('/login');
     };
 
+    // eslint-disable-next-line no-unused-vars
     const categories = [...new Set([
         ...inventory.map(i => i.category),
         ...products.map(p => p.category)

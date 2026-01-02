@@ -302,7 +302,7 @@ export const salesOrdersApi = {
         }
 
         // Apply the discount
-        const { data, error } = await supabase
+        const { error } = await supabase
             .from('sales_order_discounts')
             .insert([{
                 sales_order_id: orderId,
@@ -383,7 +383,7 @@ export const salesOrdersApi = {
     },
 
     // Void order
-    void: async (orderId, voidReasonId = null, note = null) => {
+    void: async (orderId, _voidReasonId = null, note = null) => {
         const { data, error } = await supabase
             .from('sales_orders')
             .update({

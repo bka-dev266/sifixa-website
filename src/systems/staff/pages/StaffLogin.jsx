@@ -16,11 +16,13 @@ const StaffLogin = () => {
 
     // Redirect if already logged in as staff
     useEffect(() => {
-        if (isAuthenticated && isStaff) {
-            if (role === 'admin') {
-                navigate('/admin');
+        console.log('StaffLogin check:', { isAuthenticated, isStaff, role });
+
+        if (isAuthenticated && role?.isStaff === true) {
+            if (role?.name === 'admin') {
+                navigate('/admin', { replace: true });
             } else {
-                navigate('/employee');
+                navigate('/employee', { replace: true });
             }
         }
     }, [isAuthenticated, isStaff, role, navigate]);
@@ -33,12 +35,16 @@ const StaffLogin = () => {
         const result = await login(email, password);
 
         if (result.success) {
-            // Note: The redirect will happen via the useEffect above
-            // once the role is loaded from the database
+            // The login was successful - redirect will happen via useEffect
+            // when isAuthenticated and isStaff update
+            // Give a moment for state to update then force check
+            setTimeout(() => {
+                setLoading(false);
+            }, 500);
         } else {
             setError(result.error || 'Login failed. Please check your credentials.');
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     return (

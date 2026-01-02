@@ -36,7 +36,7 @@ import { storeSettingsApi } from './api/storeSettings';
 // ============== MOCK API - SUPABASE ONLY ==============
 export const mockApi = {
     // ============== AUTHENTICATION ==============
-    login: async (username, password) => {
+    login: async (username, _password) => {
         // Query profiles table for user
         try {
             const { data: profile, error } = await supabase
@@ -58,7 +58,7 @@ export const mockApi = {
                 isStaff: true,
                 permissions: {}
             };
-        } catch (err) {
+        } catch {
             throw new Error('Invalid credentials');
         }
     },
@@ -245,7 +245,7 @@ export const mockApi = {
                 activeServices: services.filter(s => s.active).length,
                 totalCustomers: customers.length
             };
-        } catch (err) {
+        } catch {
             return {
                 totalBookings: 0,
                 pendingBookings: 0,
@@ -286,7 +286,7 @@ export const mockApi = {
                 message: r.note,
                 created_at: r.changed_at
             }));
-        } catch (err) {
+        } catch {
             return [];
         }
     },
@@ -358,8 +358,8 @@ export const mockApi = {
                 maxBookings: s.max_bookings,
                 active: s.is_active
             }));
-        } catch (err) {
-            console.error('Time slots error:', err);
+        } catch {
+            console.error('Time slots error');
             // Return default time slots
             return [
                 { id: '1', name: 'Morning', startTime: '09:00', endTime: '12:00', maxBookings: 3, active: true },
@@ -386,7 +386,7 @@ export const mockApi = {
                 price: 0,
                 category: 'products'
             }));
-        } catch (err) {
+        } catch {
             return [];
         }
     },
@@ -406,7 +406,7 @@ export const mockApi = {
                 status: s.status,
                 date: s.created_at
             }));
-        } catch (err) {
+        } catch {
             return [];
         }
     },
@@ -451,7 +451,7 @@ export const mockApi = {
                 total: po.total,
                 date: po.created_at
             }));
-        } catch (err) {
+        } catch {
             return [];
         }
     },
@@ -476,7 +476,7 @@ export const mockApi = {
                 statusCounts[b.status] = (statusCounts[b.status] || 0) + 1;
             });
             return Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
-        } catch (err) {
+        } catch {
             return [];
         }
     },
@@ -489,7 +489,7 @@ export const mockApi = {
                 lowStockItems: 0,
                 totalValue: 0
             };
-        } catch (err) {
+        } catch {
             return { totalItems: 0, lowStockItems: 0, totalValue: 0 };
         }
     },
@@ -511,7 +511,7 @@ export const mockApi = {
                 .order('created_at', { ascending: false });
             if (error) return [];
             return data;
-        } catch (err) {
+        } catch {
             return [];
         }
     },
@@ -523,7 +523,7 @@ export const mockApi = {
                 .select('*');
             if (error) return [];
             return data;
-        } catch (err) {
+        } catch {
             return [];
         }
     },
@@ -565,7 +565,7 @@ export const mockApi = {
                 customer: 'Customer',
                 total: r.final_price || 0
             }));
-        } catch (err) {
+        } catch {
             return [];
         }
     },
@@ -580,7 +580,7 @@ export const mockApi = {
     },
 
     // ============== BOOKING OPERATIONS ==============
-    addBookingNote: async (bookingId, note, author) => {
+    addBookingNote: async (bookingId, note, _author) => {
         return appointmentsApi.update(bookingId, { notes: note });
     },
 
@@ -613,7 +613,7 @@ export const mockApi = {
         return updates;
     },
 
-    resetUserPassword: async (userId, newPassword) => {
+    resetUserPassword: async (userId, _newPassword) => {
         console.log('Password reset requested for user:', userId);
         return true;
     },

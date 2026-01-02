@@ -608,7 +608,7 @@ export const websiteContentApi = {
             [section]: { ...currentContent[section], ...sectionData }
         };
 
-        const { data, error } = await supabase
+        const { error } = await supabase
             .from('website_content')
             .upsert({
                 content_key: 'website_content',

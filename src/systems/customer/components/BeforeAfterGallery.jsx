@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
 import { getGallery } from '../../../services/landingService';
+import { getGalleryUrl } from '../../../utils/assets';
 import './BeforeAfterGallery.css';
 
 // Default gallery items with real images
@@ -10,42 +11,42 @@ const defaultGalleryItems = [
         id: 1,
         title: 'iPhone Screen Repair',
         description: 'Shattered screen restored to brand new condition',
-        before_image: '/gallery/phone-before.png',
-        after_image: '/gallery/phone-after.png',
+        before_image: getGalleryUrl('phone-before.png'),
+        after_image: getGalleryUrl('phone-after.png'),
     },
     {
         id: 2,
         title: 'MacBook Screen Replacement',
         description: 'Cracked display replaced with original parts',
-        before_image: '/gallery/laptop-before.png',
-        after_image: '/gallery/laptop-after.png',
+        before_image: getGalleryUrl('laptop-before.png'),
+        after_image: getGalleryUrl('laptop-after.png'),
     },
     {
         id: 3,
         title: 'Samsung Galaxy Screen Repair',
         description: 'Severely cracked display restored to perfect condition',
-        before_image: '/gallery/samsung-before.png',
-        after_image: '/gallery/samsung-after.png',
+        before_image: getGalleryUrl('samsung-before.png'),
+        after_image: getGalleryUrl('samsung-after.png'),
     },
     {
         id: 4,
         title: 'iPad Screen Replacement',
         description: 'Damaged tablet screen replaced with premium parts',
-        before_image: '/gallery/ipad-before.png',
-        after_image: '/gallery/ipad-after.png',
+        before_image: getGalleryUrl('ipad-before.png'),
+        after_image: getGalleryUrl('ipad-after.png'),
     },
     {
         id: 5,
         title: 'iPhone Battery Replacement',
         description: 'Swollen battery replaced - 100% health restored',
-        before_image: '/gallery/battery-before.png',
-        after_image: '/gallery/battery-after.png',
+        before_image: getGalleryUrl('battery-before.png'),
+        after_image: getGalleryUrl('battery-after.png'),
     },
 ];
 
 const AUTO_PLAY_INTERVAL = 5000; // 5 seconds
 
-const BeforeAfterGallery = ({ sectionHeader }) => {
+const BeforeAfterGallery = () => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [galleryItems, setGalleryItems] = useState(defaultGalleryItems);
     const [isAutoPlaying, setIsAutoPlaying] = useState(true);

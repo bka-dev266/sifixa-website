@@ -44,7 +44,7 @@ const serviceOptions = [
 
 const AUTO_PLAY_INTERVAL = 6000; // 6 seconds per service option
 
-const HowItWorks = ({ section, loading }) => {
+const HowItWorks = ({ section }) => {
     const [activeIndex, setActiveIndex] = useState(0);
     const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 

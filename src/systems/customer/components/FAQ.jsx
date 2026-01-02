@@ -41,8 +41,8 @@ const defaultFaqData = [
 const FAQ = ({ faqItems, loading }) => {
     const [openIndex, setOpenIndex] = useState(null);
 
-    // Use props FAQ or defaults
-    const faqData = faqItems?.length > 0 ? faqItems : defaultFaqData;
+    // Use props FAQ or defaults (check for both undefined AND empty array)
+    const faqData = faqItems && faqItems.length > 0 ? faqItems : defaultFaqData;
 
     const toggleFAQ = (index) => {
         setOpenIndex(openIndex === index ? null : index);

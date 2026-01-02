@@ -158,7 +158,6 @@ export const discountsApi = {
 
     // Validate coupon
     validateCoupon: async (code) => {
-        const now = new Date().toISOString();
 
         const { data, error } = await supabase
             .from('coupons')

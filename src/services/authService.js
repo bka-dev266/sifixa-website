@@ -95,16 +95,31 @@ export const getUserRoles = async (userId) => {
 
 /**
  * Get user's primary role (highest privilege)
+ * Returns: { name: string, isStaff: boolean }
  */
 export const getPrimaryRole = async (userId) => {
     const roles = await getUserRoles(userId);
 
-    // Priority: admin > employee > customer
-    if (roles.some(r => r.name === 'admin')) return 'admin';
-    if (roles.some(r => r.name === 'employee')) return 'employee';
-    if (roles.some(r => r.name === 'customer')) return 'customer';
+    if (!roles || roles.length === 0) {
+        return { name: 'customer', isStaff: false };
+    }
 
-    return 'customer'; // default
+    // Priority: admin > manager > other staff > customer
+    const admin = roles.find(r => r.name === 'admin');
+    if (admin) return { name: 'admin', isStaff: true };
+
+    const manager = roles.find(r => r.name === 'manager');
+    if (manager) return { name: 'manager', isStaff: true };
+
+    // Any other staff role (technician, cashier, support)
+    const staffRole = roles.find(r => r.is_staff === true);
+    if (staffRole) return { name: staffRole.name, isStaff: true };
+
+    // Customer or unknown
+    const customerRole = roles.find(r => r.name === 'customer');
+    if (customerRole) return { name: 'customer', isStaff: false };
+
+    return { name: 'customer', isStaff: false };
 };
 
 /**

@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
 import * as authService from '../services/authService';
 
 const AuthContext = createContext(null);
@@ -13,7 +13,12 @@ export const AuthProvider = ({ children }) => {
     const [role, setRole] = useState(null);           // Primary role (admin/employee/customer)
     const [loading, setLoading] = useState(true);
     const [sessionExpiry, setSessionExpiry] = useState(null);
-    const [lastActivity, setLastActivity] = useState(Date.now());
+
+    // FIX: Use lazy initialization for Date.now() to avoid impure function call during render
+    const [lastActivity, setLastActivity] = useState(() => Date.now());
+
+    // FIX: Use ref to store logout function for effects to avoid circular dependency
+    const logoutRef = useRef(null);
 
     // Load user profile and role from database
     const loadUserData = useCallback(async (authUser) => {
@@ -24,19 +29,39 @@ export const AuthProvider = ({ children }) => {
         }
 
         try {
-            const [userProfile, primaryRole] = await Promise.all([
+            const [userProfile, roleData] = await Promise.all([
                 authService.getProfile(authUser.id),
                 authService.getPrimaryRole(authUser.id)
             ]);
 
             setProfile(userProfile);
-            setRole(primaryRole);
+            // roleData is now { name: string, isStaff: boolean }
+            setRole(roleData);
         } catch (error) {
             console.error('Error loading user data:', error);
             setProfile(null);
-            setRole('customer'); // Default fallback
+            setRole({ name: 'customer', isStaff: false }); // Default fallback
         }
     }, []);
+
+    // Define logout function first
+    const logout = useCallback(async () => {
+        try {
+            await authService.signOut();
+        } catch (error) {
+            console.error('Logout error:', error);
+        } finally {
+            setUser(null);
+            setProfile(null);
+            setRole(null);
+            setSessionExpiry(null);
+        }
+    }, []);
+
+    // Store logout in ref for use in effects
+    useEffect(() => {
+        logoutRef.current = logout;
+    }, [logout]);
 
     // Initialize auth state from Supabase session
     useEffect(() => {
@@ -77,7 +102,7 @@ export const AuthProvider = ({ children }) => {
         return () => subscription.unsubscribe();
     }, [loadUserData]);
 
-    // Session expiry checker
+    // Session expiry checker - using ref to avoid dependency issues
     useEffect(() => {
         if (!user) return;
 
@@ -86,7 +111,8 @@ export const AuthProvider = ({ children }) => {
             const inactivityTime = now - lastActivity;
 
             if (inactivityTime >= SESSION_TIMEOUT) {
-                logout();
+                // Use ref to call logout to avoid stale closure
+                logoutRef.current?.();
                 return;
             }
 
@@ -158,18 +184,6 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const logout = useCallback(async () => {
-        try {
-            await authService.signOut();
-        } catch (error) {
-            console.error('Logout error:', error);
-        }
-        setUser(null);
-        setProfile(null);
-        setRole(null);
-        setSessionExpiry(null);
-    }, []);
-
     const updateUser = async (updates) => {
         if (!user) return;
 
@@ -194,10 +208,11 @@ export const AuthProvider = ({ children }) => {
 
     // Computed properties for convenience
     const isAuthenticated = !!user;
-    const isAdmin = role === 'admin';
-    const isEmployee = role === 'employee' || role === 'admin';
-    const isStaff = isEmployee;
-    const isCustomer = role === 'customer';
+    const roleName = role?.name || 'customer';
+    const isAdmin = roleName === 'admin';
+    const isStaff = role?.isStaff === true;
+    const isEmployee = isStaff; // Any staff member
+    const isCustomer = !isStaff;
 
     return (
         <AuthContext.Provider value={{
@@ -222,9 +237,10 @@ export const AuthProvider = ({ children }) => {
             updateUser,
             getSessionInfo
         }}>
-            {!loading && children}
+            {children}
         </AuthContext.Provider>
     );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);

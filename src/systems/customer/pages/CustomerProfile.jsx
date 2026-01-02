@@ -2728,7 +2728,7 @@ const ProfileModal = ({ user, customerData, onSave, onClose }) => {
     const handleSubmit = (e) => {
         e.preventDefault();
         // Construct full address string for display compatibility
-        const fullAddress = `${formData.street}, ${formData.city}, ${formData.state} ${formData.zip}`.replace(/, , /g, ', ').replace(/  /g, ' ').trim();
+        const fullAddress = `${formData.street}, ${formData.city}, ${formData.state} ${formData.zip}`.replace(/, , /g, ', ').replace(/ {2}/g, ' ').trim();
 
         onSave({
             ...formData,
