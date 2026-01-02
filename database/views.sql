@@ -122,7 +122,6 @@ SELECT
     rt.priority,
     rt.opened_at,
     rt.closed_at,
-    rt.created_at AS ticket_created,
     rt.updated_at AS ticket_updated,
     -- Appointment/Booking
     a.id AS appointment_id,
