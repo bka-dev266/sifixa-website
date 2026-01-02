@@ -62,18 +62,13 @@ SELECT
         ORDER BY ic.effective_from DESC 
         LIMIT 1
     ) AS current_cost,
-    -- Total stock across all stores
-    COALESCE(SUM(sl.quantity), 0) AS total_stock,
-    -- Stock by store (as JSON)
+    -- Total stock (simplified - from stock_levels if exists, else 0)
     COALESCE(
-        jsonb_object_agg(s.name, sl.quantity) FILTER (WHERE s.id IS NOT NULL),
-        '{}'::jsonb
-    ) AS stock_by_store
+        (SELECT SUM(sl.quantity) FROM stock_levels sl WHERE sl.item_id = i.id),
+        0
+    ) AS total_stock
 FROM items i
-LEFT JOIN stock_levels sl ON sl.item_id = i.id
-LEFT JOIN stores s ON s.id = sl.store_id
-WHERE i.deleted_at IS NULL
-GROUP BY i.id;
+WHERE i.deleted_at IS NULL;
 
 -- ==================== BOOKING DETAILS VIEW ====================
 -- Full booking/appointment information with customer and device
