@@ -213,26 +213,34 @@ CREATE POLICY "Public read landing_gallery" ON landing_gallery
 FOR SELECT USING (is_active = true);
 
 -- Admin write for all landing tables
+DROP POLICY IF EXISTS "Admin write landing_hero" ON landing_hero;
 CREATE POLICY "Admin write landing_hero" ON landing_hero 
 FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Admin write landing_services" ON landing_services;
 CREATE POLICY "Admin write landing_services" ON landing_services 
 FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Admin write landing_testimonials" ON landing_testimonials;
 CREATE POLICY "Admin write landing_testimonials" ON landing_testimonials 
 FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Admin write landing_faq" ON landing_faq;
 CREATE POLICY "Admin write landing_faq" ON landing_faq 
 FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Admin write landing_sections" ON landing_sections;
 CREATE POLICY "Admin write landing_sections" ON landing_sections 
 FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Admin write landing_pricing" ON landing_pricing;
 CREATE POLICY "Admin write landing_pricing" ON landing_pricing 
 FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Admin write landing_pricing_items" ON landing_pricing_items;
 CREATE POLICY "Admin write landing_pricing_items" ON landing_pricing_items 
 FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Admin write landing_gallery" ON landing_gallery;
 CREATE POLICY "Admin write landing_gallery" ON landing_gallery 
 FOR ALL TO authenticated USING (true) WITH CHECK (true);
