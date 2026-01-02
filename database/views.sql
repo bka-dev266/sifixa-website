@@ -62,8 +62,11 @@ SELECT
         ORDER BY ic.effective_from DESC 
         LIMIT 1
     ) AS current_cost,
-    -- Total stock (placeholder - update when stock_levels table exists)
-    0 AS total_stock
+    -- Total stock using correct column names
+    COALESCE(
+        (SELECT SUM(sl.qty_on_hand) FROM stock_levels sl WHERE sl.item_id = i.id),
+        0
+    ) AS total_stock
 FROM items i
 WHERE i.deleted_at IS NULL;
 
