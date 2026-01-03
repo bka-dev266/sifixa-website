@@ -20,6 +20,27 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 
     const roleName = role?.name || 'customer';
 
+    // CROSS-PORTAL BLOCKING
+    // Block staff from customer-only routes
+    const isCustomerOnlyRoute = allowedRoles.includes('customer') &&
+        !allowedRoles.includes('employee') &&
+        !allowedRoles.includes('admin');
+
+    if (isCustomerOnlyRoute && isStaff) {
+        console.log('ProtectedRoute: Blocking staff from customer route, redirecting to dashboard');
+        if (isAdmin) return <Navigate to="/admin" replace />;
+        return <Navigate to="/employee" replace />;
+    }
+
+    // Block customers from staff-only routes
+    const isStaffOnlyRoute = (allowedRoles.includes('employee') || allowedRoles.includes('admin')) &&
+        !allowedRoles.includes('customer');
+
+    if (isStaffOnlyRoute && !isStaff) {
+        console.log('ProtectedRoute: Blocking customer from staff route, redirecting to profile');
+        return <Navigate to="/customer/profile" replace />;
+    }
+
     // Check if user has permission
     // Map 'employee' allowedRole to all staff roles for backwards compatibility
     const hasPermission = allowedRoles.some(allowed => {
@@ -48,3 +69,4 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 };
 
 export default ProtectedRoute;
+

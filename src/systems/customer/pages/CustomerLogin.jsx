@@ -19,7 +19,7 @@ const CustomerLogin = () => {
     const [loading, setLoading] = useState(false);
     const [acceptedTerms, setAcceptedTerms] = useState(false);
 
-    const { login, signup, isAuthenticated, isCustomer } = useAuth();
+    const { login, logout, signup, isAuthenticated, isCustomer } = useAuth();
     const navigate = useNavigate();
 
     // Redirect if already logged in as customer
@@ -45,8 +45,24 @@ const CustomerLogin = () => {
         setLoading(true);
 
         const result = await login(email, password);
+
         if (result.success) {
-            // Redirect handled by useEffect
+            // CRITICAL: Check if user is staff - they shouldn't login here
+            // Role data is now returned directly from login()
+            const roleData = result.role;
+            console.log('Customer login - Role check:', roleData);
+
+            if (roleData && roleData.isStaff) {
+                // Staff member trying to use customer portal - block them
+                console.warn('Staff user attempted customer login:', email);
+                await logout();
+                setError('Staff members must use the Staff Portal to login.');
+                setLoading(false);
+                return;
+            }
+
+            // Customer - redirect to profile
+            navigate('/customer/profile', { replace: true });
         } else {
             setError(result.error || 'Login failed. Please check your credentials.');
         }

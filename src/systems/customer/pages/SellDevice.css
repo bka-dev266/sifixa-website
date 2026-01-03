@@ -609,6 +609,10 @@
         gap: 8px;
     }
 
+    .step-number {
+        display: none;
+    }
+
     .step-line-wrapper {
         display: none;
     }

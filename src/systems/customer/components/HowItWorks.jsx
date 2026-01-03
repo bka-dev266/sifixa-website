@@ -1,60 +1,86 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Store, Truck, Calendar, Wrench, CheckCircle, ArrowRight, Pause, Play } from 'lucide-react';
+import {
+    MapPin, Store, Truck, Calendar, Wrench, CheckCircle,
+    ArrowRight, Pause, Play, ClipboardCheck, PackageCheck
+} from 'lucide-react';
 import './HowItWorks.css';
 
-const serviceOptions = [
+// Icon mapping - add all icons used in the section
+const iconMap = {
+    MapPin,
+    Store,
+    Truck,
+    Calendar,
+    Wrench,
+    CheckCircle,
+    ArrowRight,
+    Pause,
+    Play,
+    ClipboardCheck,
+    PackageCheck
+};
+
+// Default section header
+const defaultSection = {
+    title: 'How It Works',
+    subtitle: 'Choose the service option that works best for you'
+};
+
+// Default options with steps (fallback)
+const defaultOptions = [
     {
         id: 'come-to-you',
         title: 'We Come To You',
-        icon: MapPin,
+        icon: 'MapPin',
         description: 'Our technician visits your location',
         steps: [
-            { icon: Calendar, title: 'Book Online', desc: 'Schedule a convenient time' },
-            { icon: MapPin, title: 'We Arrive', desc: 'Technician comes to your location' },
-            { icon: Wrench, title: 'Quick Repair', desc: 'Fixed on the spot' },
-            { icon: CheckCircle, title: 'All Done!', desc: 'Back to working perfectly' }
+            { step_number: 1, icon: 'Calendar', title: 'Book Online', description: 'Schedule a convenient time' },
+            { step_number: 2, icon: 'MapPin', title: 'We Arrive', description: 'Technician comes to your location' },
+            { step_number: 3, icon: 'Wrench', title: 'Quick Repair', description: 'Fixed on the spot' },
+            { step_number: 4, icon: 'CheckCircle', title: 'All Done!', description: 'Back to working perfectly' }
         ]
     },
     {
         id: 'visit-shop',
         title: 'Visit Our Shop',
-        icon: Store,
+        icon: 'Store',
         description: 'Walk in - no appointment needed',
         steps: [
-            { icon: Store, title: 'Visit Us', desc: 'Bring your device to our shop' },
-            { icon: Wrench, title: 'Expert Repair', desc: 'We fix it while you wait or notify you if it takes longer' },
-            { icon: CheckCircle, title: 'We Notify You', desc: 'Get notified when your device is ready' },
-            { icon: Truck, title: 'Pick Up or Delivery', desc: 'Collect in-store or we deliver to you' }
+            { step_number: 1, icon: 'Store', title: 'Walk In', description: 'Visit our convenient location' },
+            { step_number: 2, icon: 'ClipboardCheck', title: 'Quick Assessment', description: 'Free diagnosis in minutes' },
+            { step_number: 3, icon: 'Wrench', title: 'Expert Repair', description: 'Fixed while you wait' },
+            { step_number: 4, icon: 'CheckCircle', title: 'All Done!', description: 'Back to working perfectly' }
         ]
     },
     {
         id: 'pickup-delivery',
         title: 'Pickup & Delivery',
-        icon: Truck,
+        icon: 'Truck',
         description: 'We pick up and deliver back to you',
         steps: [
-            { icon: Calendar, title: 'Schedule Pickup', desc: 'Choose a pickup time' },
-            { icon: Truck, title: 'We Collect', desc: 'We pick up your device' },
-            { icon: Wrench, title: 'Repair at Shop', desc: 'Fixed by our experts' },
-            { icon: Truck, title: 'Delivered', desc: 'Returned to your door' }
+            { step_number: 1, icon: 'Calendar', title: 'Schedule Pickup', description: 'Book a convenient time' },
+            { step_number: 2, icon: 'Truck', title: 'We Collect', description: 'Driver picks up your device' },
+            { step_number: 3, icon: 'Wrench', title: 'We Repair', description: 'Fixed at our workshop' },
+            { step_number: 4, icon: 'PackageCheck', title: 'Delivered Back', description: 'Returned to your door' }
         ]
     }
 ];
 
 const AUTO_PLAY_INTERVAL = 6000; // 6 seconds per service option
 
-const HowItWorks = ({ section }) => {
+const HowItWorks = ({ section, options, loading }) => {
     const [activeIndex, setActiveIndex] = useState(0);
     const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
-    // Use props from parent or defaults
-    const content = section || {};
-    const currentOption = serviceOptions[activeIndex];
+    // Use props or defaults
+    const headerData = section?.title ? section : defaultSection;
+    const optionsData = options?.length > 0 ? options : defaultOptions;
+    const currentOption = optionsData[activeIndex];
 
     const nextOption = useCallback(() => {
-        setActiveIndex((prev) => (prev + 1) % serviceOptions.length);
-    }, []);
+        setActiveIndex((prev) => (prev + 1) % optionsData.length);
+    }, [optionsData.length]);
 
     // Auto-play functionality
     useEffect(() => {
@@ -71,12 +97,31 @@ const HowItWorks = ({ section }) => {
     const handleMouseEnter = () => setIsAutoPlaying(false);
     const handleMouseLeave = () => setIsAutoPlaying(true);
 
+    // Loading skeleton
+    if (loading) {
+        return (
+            <section className="how-it-works-section section-padding">
+                <div className="container">
+                    <div className="section-header text-center">
+                        <div className="skeleton" style={{ width: '250px', height: '40px', margin: '0 auto 16px' }}></div>
+                        <div className="skeleton" style={{ width: '400px', height: '24px', margin: '0 auto' }}></div>
+                    </div>
+                    <div className="how-it-works-showcase">
+                        <div className="skeleton" style={{ height: '60px', marginBottom: '20px' }}></div>
+                        <div className="skeleton" style={{ height: '200px' }}></div>
+                    </div>
+                </div>
+            </section>
+        );
+    }
+
     return (
         <section className="how-it-works-section section-padding">
             <div className="container">
+                {/* Section Header - Dynamic */}
                 <div className="section-header text-center">
-                    <h2 className="section-title">{content?.sectionTitle || 'How It Works'}</h2>
-                    <p className="section-subtitle">{content?.sectionSubtitle || 'Choose the service option that works best for you'}</p>
+                    <h2 className="section-title">{headerData.title}</h2>
+                    <p className="section-subtitle">{headerData.subtitle}</p>
                 </div>
 
                 <div
@@ -86,9 +131,9 @@ const HowItWorks = ({ section }) => {
                 >
                     {/* Progress bar */}
                     <div className="service-progress-bar">
-                        {serviceOptions.map((option, index) => (
+                        {optionsData.map((option, index) => (
                             <div
-                                key={option.id}
+                                key={option.id || index}
                                 className={`progress-segment ${index === activeIndex ? 'active' : ''} ${index < activeIndex ? 'completed' : ''}`}
                                 onClick={() => setActiveIndex(index)}
                             >
@@ -103,12 +148,13 @@ const HowItWorks = ({ section }) => {
                         ))}
                     </div>
 
+                    {/* Option Tabs - Dynamic */}
                     <div className="service-options-tabs">
-                        {serviceOptions.map((option, index) => {
-                            const Icon = option.icon;
+                        {optionsData.map((option, index) => {
+                            const Icon = iconMap[option.icon] || MapPin;
                             return (
                                 <button
-                                    key={option.id}
+                                    key={option.id || index}
                                     className={`option-tab ${activeIndex === index ? 'active' : ''}`}
                                     onClick={() => setActiveIndex(index)}
                                 >
@@ -122,6 +168,7 @@ const HowItWorks = ({ section }) => {
                         })}
                     </div>
 
+                    {/* Steps Container - Dynamic */}
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={activeIndex}
@@ -132,23 +179,23 @@ const HowItWorks = ({ section }) => {
                             transition={{ duration: 0.4, ease: "easeOut" }}
                         >
                             <div className="steps-grid">
-                                {currentOption.steps.map((step, index) => {
-                                    const StepIcon = step.icon;
+                                {(currentOption?.steps || []).map((step, index) => {
+                                    const StepIcon = iconMap[step.icon] || CheckCircle;
                                     return (
                                         <motion.div
-                                            key={index}
+                                            key={step.id || index}
                                             className="step-card"
                                             initial={{ opacity: 0, y: 20 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{ delay: index * 0.1, duration: 0.3 }}
                                         >
-                                            <div className="step-number">{index + 1}</div>
+                                            <div className="step-number">{step.step_number || index + 1}</div>
                                             <div className="step-icon">
                                                 <StepIcon size={28} />
                                             </div>
                                             <h4>{step.title}</h4>
-                                            <p>{step.desc}</p>
-                                            {index < currentOption.steps.length - 1 && (
+                                            <p>{step.description || step.desc}</p>
+                                            {index < (currentOption?.steps?.length || 0) - 1 && (
                                                 <div className="step-arrow">
                                                     <ArrowRight size={20} />
                                                 </div>
@@ -165,7 +212,7 @@ const HowItWorks = ({ section }) => {
                         <div className="slide-counter">
                             <span className="current">{String(activeIndex + 1).padStart(2, '0')}</span>
                             <span className="separator">/</span>
-                            <span className="total">{String(serviceOptions.length).padStart(2, '0')}</span>
+                            <span className="total">{String(optionsData.length).padStart(2, '0')}</span>
                         </div>
                         <button
                             className="play-pause-btn"

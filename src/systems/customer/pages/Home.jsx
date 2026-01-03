@@ -1,22 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Hero from '../components/Hero';
+import ServicesShowcase from '../components/ServicesShowcase';
 import HowItWorks from '../components/HowItWorks';
 import WhyChooseUs from '../components/WhyChooseUs';
 import PricingTable from '../components/PricingTable';
 import BeforeAfterGallery from '../components/BeforeAfterGallery';
 import Testimonials from '../components/Testimonials';
-import { ArrowRight, Smartphone, Laptop, Tablet, DollarSign } from 'lucide-react';
+import { ArrowRight, Smartphone, Laptop, DollarSign } from 'lucide-react';
 import { getLanding } from '../../../services/landingService';
-import { getAssetUrl } from '../../../utils/assets';
 import './Home.css';
-
-// Icon mapping
-const iconMap = {
-    Smartphone: Smartphone,
-    Tablet: Tablet,
-    Laptop: Laptop
-};
 
 const Home = () => {
     const [landing, setLanding] = useState(null);
@@ -45,78 +38,27 @@ const Home = () => {
     const sellCta = getSection('sell_cta');
     const ctaSection = getSection('cta');
 
-    // Services from DB or defaults
-    const services = landing?.services?.length > 0 ? landing.services.map(s => {
-        // Robust image handling: remove leading slash if present, fallback to default
-        const imagePath = s.image ? s.image.replace(/^\//, '') : 'smartphone-repair.png';
-        return {
-            ...s,
-            image: getAssetUrl(imagePath),
-            // Ensure icon exists, fallback to Smartphone if missing
-            icon: s.icon || 'Smartphone'
-        };
-    }) : [
-        { title: 'Smartphone Repair', description: 'Screen replacement, battery, charging port, camera and more.', icon: 'Smartphone', image: getAssetUrl('smartphone-repair.png') },
-        { title: 'Tablet Repair', description: 'iPad, Samsung Tab, and other tablet repairs with genuine parts.', icon: 'Tablet', image: getAssetUrl('tablet-repair.png') },
-        { title: 'Computer Repair', description: 'Laptop screen, keyboard, battery, SSD upgrades, and more.', icon: 'Laptop', image: getAssetUrl('computer-repair.png') }
-    ];
-
     return (
         <div className="home-page">
             <Hero hero={landing?.hero} loading={loading} />
 
-            <section className="services-showcase-section">
-                <div className="container">
-                    <div className="section-header text-center">
-                        <h2 className="section-title">Expert Repair Services</h2>
-                        <p className="section-subtitle">We fix all major brands and devices with premium quality parts and certified technicians.</p>
-                    </div>
+            <ServicesShowcase
+                section={getSection('services_showcase')}
+                services={landing?.services}
+                loading={loading}
+            />
 
-                    {loading ? (
-                        <div className="services-showcase-grid">
-                            {[1, 2, 3].map((i) => (
-                                <div key={i} className="service-showcase-card skeleton">
-                                    <div className="skeleton-image"></div>
-                                    <div className="skeleton-content">
-                                        <div className="skeleton-title"></div>
-                                        <div className="skeleton-text"></div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="services-showcase-grid">
-                            {services.map((service, index) => {
-                                const Icon = iconMap[service.icon] || Smartphone;
-                                return (
-                                    <Link to={service.link || '/services'} className="service-showcase-card" key={service.id || index}>
-                                        <div className="service-card-image">
-                                            <img src={service.image || getAssetUrl('smartphone-repair.png')} alt={service.title} />
-                                            <div className="service-card-overlay"></div>
-                                        </div>
-                                        <div className="service-card-content">
-                                            <div className="service-card-icon">
-                                                <Icon size={28} />
-                                            </div>
-                                            <h3>{service.title}</h3>
-                                            <p>{service.description}</p>
-                                            <span className="service-card-link">Explore Services <ArrowRight size={18} /></span>
-                                        </div>
-                                    </Link>
-                                );
-                            })}
-                        </div>
-                    )}
+            <HowItWorks
+                section={getSection('how_it_works')}
+                options={landing?.howItWorks}
+                loading={loading}
+            />
 
-                    <div className="text-center mt-8">
-                        <Link to="/services" className="btn btn-outline">View All Services</Link>
-                    </div>
-                </div>
-            </section>
-
-            <HowItWorks section={getSection('how_it_works')} loading={loading} />
-
-            <WhyChooseUs section={getSection('why_choose_us')} loading={loading} />
+            <WhyChooseUs
+                section={getSection('why_choose_us')}
+                features={landing?.features}
+                loading={loading}
+            />
 
             <PricingTable />
 
@@ -141,7 +83,11 @@ const Home = () => {
                 </div>
             </section>
 
-            <BeforeAfterGallery />
+            <BeforeAfterGallery
+                section={getSection('gallery')}
+                items={landing?.gallery}
+                loading={loading}
+            />
 
             <section className="cta-section">
                 <div className="container">
@@ -166,3 +112,4 @@ const Home = () => {
 };
 
 export default Home;
+

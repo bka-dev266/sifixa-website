@@ -3,16 +3,34 @@ import { motion, useInView, useScroll, useTransform } from 'framer-motion';
 import { ArrowRight, Star, Zap, Shield, Award } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Button from '../../../components/Button';
-import heroImage from '../../../assets/images/hero-repair.png';
+import { getAssetUrl } from '../../../utils/assets';
+// Import hero image directly as fallback
+import defaultHeroImage from '../../../assets/images/hero-repair.png';
 import './Hero.css';
 
-const Hero = ({ hero }) => {
+// Default values (fallback if database fails or fields are missing)
+const defaultHero = {
+    badge_text: 'Trusted by 2,500+ Happy Customers',
+    title: 'Expert Device Repair',
+    highlight: 'Done Right!',
+    subtitle: 'Premium repair services for iPhones, Samsung, Laptops & Tablets. Fast turnaround. Certified technicians. 90-day warranty on all repairs.',
+    cta_text: 'Book Repair',
+    cta_link: '/booking',
+    secondary_cta_text: 'View Services',
+    secondary_cta_link: '/services',
+    hero_image: null, // Will use imported image as default
+    stat_rating: '4.9',
+    stat_avg_time: '30 min',
+    stat_warranty: '90 Days',
+    stat_repairs: '15K+'
+};
+
+const Hero = ({ hero, loading }) => {
     const heroRef = useRef(null);
     const isInView = useInView(heroRef, { once: true, margin: "-100px" });
 
-    // Use props or defaults
-    const content = hero || {};
-
+    // Merge database data with defaults (fallback for missing fields)
+    const data = { ...defaultHero, ...hero };
 
     const { scrollYProgress } = useScroll({
         target: heroRef,
@@ -59,9 +77,28 @@ const Hero = ({ hero }) => {
         })
     };
 
-    // Use dynamic content or fallback
-    const headingText = content?.title || "Expert Device Repair";
-    const highlightText = content?.subtitle || "Done Right.";
+    // Loading skeleton
+    if (loading) {
+        return (
+            <section className="hero" ref={heroRef}>
+                <div className="container hero-container">
+                    <div className="hero-content">
+                        <div className="skeleton skeleton-badge" style={{ width: '200px', height: '32px', borderRadius: '20px', marginBottom: '20px' }}></div>
+                        <div className="skeleton skeleton-title" style={{ width: '100%', height: '60px', marginBottom: '16px' }}></div>
+                        <div className="skeleton skeleton-subtitle" style={{ width: '80%', height: '80px', marginBottom: '24px' }}></div>
+                        <div className="skeleton skeleton-buttons" style={{ width: '300px', height: '50px' }}></div>
+                    </div>
+                    <div className="hero-image">
+                        <div className="skeleton skeleton-image" style={{ width: '100%', height: '400px', borderRadius: '24px' }}></div>
+                    </div>
+                </div>
+            </section>
+        );
+    }
+
+    // For now, always use the imported image
+    // The database hero_image field can be used later with Supabase Storage URLs
+    const heroImageUrl = defaultHeroImage;
 
     return (
         <section className="hero" ref={heroRef}>
@@ -73,27 +110,39 @@ const Hero = ({ hero }) => {
                     animate={isInView ? "visible" : "hidden"}
                     style={{ y: contentY }}
                 >
+                    {/* Badge - Dynamic */}
                     <motion.div className="badge" variants={itemVariants}>
                         <Star size={14} fill="currentColor" />
-                        <span>Trusted by 2,500+ Happy Customers</span>
+                        <span>{data.badge_text}</span>
                     </motion.div>
 
+                    {/* Title - Dynamic */}
                     <motion.h1 variants={itemVariants}>
-                        <span className="hero-title-main">{headingText}</span>
-                        {' '}
-                        <span className="highlight">{highlightText}</span>
+                        <span className="hero-title-main">{data.title}</span>
+                        {data.highlight && (
+                            <>
+                                {' '}
+                                <span className="highlight">{data.highlight}</span>
+                            </>
+                        )}
                     </motion.h1>
 
+                    {/* Subtitle - Dynamic */}
                     <motion.p variants={itemVariants}>
-                        {content?.description || 'Premium repair services for iPhones, Samsung, Laptops & Tablets. Fast turnaround. Certified technicians. 90-day warranty on all repairs.'}
+                        {data.subtitle}
                     </motion.p>
 
+                    {/* CTA Buttons - Dynamic links and text */}
                     <motion.div className="hero-actions" variants={itemVariants}>
-                        <Link to="/booking">
-                            <Button variant="primary">{content?.primaryButtonText || 'Book Repair'} <ArrowRight size={18} /></Button>
+                        <Link to={data.cta_link}>
+                            <Button variant="primary">
+                                {data.cta_text} <ArrowRight size={18} />
+                            </Button>
                         </Link>
-                        <Link to="/services">
-                            <Button variant="secondary">{content?.secondaryButtonText || 'View Services'}</Button>
+                        <Link to={data.secondary_cta_link}>
+                            <Button variant="secondary">
+                                {data.secondary_cta_text}
+                            </Button>
                         </Link>
                     </motion.div>
                 </motion.div>
@@ -107,8 +156,9 @@ const Hero = ({ hero }) => {
                 >
                     <div className="hero-image-wrapper">
                         <div className="hero-image-border"></div>
+                        {/* Hero Image - Dynamic */}
                         <img
-                            src={heroImage}
+                            src={heroImageUrl}
                             alt="Professional device repair by SIFIXA technicians"
                             className="hero-main-image"
                         />
@@ -116,7 +166,7 @@ const Hero = ({ hero }) => {
                         <div className="hero-image-glow"></div>
                     </div>
 
-                    {/* Glassmorphism floating cards */}
+                    {/* Glass Cards - All stats from database */}
                     <motion.div
                         className="glass-card card-rating"
                         custom={0}
@@ -129,7 +179,7 @@ const Hero = ({ hero }) => {
                             <Star size={22} fill="#fbbf24" stroke="#fbbf24" />
                         </div>
                         <div className="glass-card-content">
-                            <span className="glass-card-value">4.9</span>
+                            <span className="glass-card-value">{data.stat_rating}</span>
                             <span className="glass-card-label">Rating</span>
                         </div>
                     </motion.div>
@@ -146,7 +196,7 @@ const Hero = ({ hero }) => {
                             <Zap size={22} />
                         </div>
                         <div className="glass-card-content">
-                            <span className="glass-card-value">30 min</span>
+                            <span className="glass-card-value">{data.stat_avg_time}</span>
                             <span className="glass-card-label">Avg Time</span>
                         </div>
                     </motion.div>
@@ -163,7 +213,7 @@ const Hero = ({ hero }) => {
                             <Shield size={22} />
                         </div>
                         <div className="glass-card-content">
-                            <span className="glass-card-value">90 Days</span>
+                            <span className="glass-card-value">{data.stat_warranty}</span>
                             <span className="glass-card-label">Warranty</span>
                         </div>
                     </motion.div>
@@ -180,7 +230,7 @@ const Hero = ({ hero }) => {
                             <Award size={22} />
                         </div>
                         <div className="glass-card-content">
-                            <span className="glass-card-value">15K+</span>
+                            <span className="glass-card-value">{data.stat_repairs}</span>
                             <span className="glass-card-label">Repairs</span>
                         </div>
                     </motion.div>
@@ -202,3 +252,4 @@ const Hero = ({ hero }) => {
 };
 
 export default Hero;
+

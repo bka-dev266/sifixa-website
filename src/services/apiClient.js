@@ -23,8 +23,7 @@ export const bookingsApi = {
             p_scheduled_date: bookingData.date || bookingData.scheduledDate,
             p_time_slot_id: bookingData.timeSlotId || null,
             p_issue: bookingData.issue || bookingData.notes || null,
-            p_priority: bookingData.priorityLevel || bookingData.priority || 'regular',
-            p_store_id: bookingData.storeId || null
+            p_priority: bookingData.priorityLevel || bookingData.priority || 'regular'
         });
 
         if (error) throw error;
@@ -41,7 +40,6 @@ export const bookingsApi = {
             p_status: filters.status || null,
             p_date_from: filters.dateFrom || null,
             p_date_to: filters.dateTo || null,
-            p_store_id: filters.storeId || null,
             p_limit: filters.limit || 50,
             p_offset: filters.offset || 0
         });

@@ -64,7 +64,31 @@ const PricingTable = ({ sectionHeader, loading: propLoading }) => {
             try {
                 const data = await getPricing();
                 console.log('Pricing Data:', data); // Debug logging
-                setPricingData(data.length > 0 ? data : defaultPricingData);
+
+                // Check if we got categories AND they have items
+                // The Supabase query returns items as nested array under 'items' key
+                const hasValidData = data.length > 0 && data.some(cat =>
+                    cat.items && Array.isArray(cat.items) && cat.items.length > 0
+                );
+
+                if (hasValidData) {
+                    // Normalize the data structure to match what the component expects
+                    const normalizedData = data.map(cat => ({
+                        id: cat.id,
+                        category: cat.category,
+                        icon: cat.icon,
+                        items: (cat.items || []).map(item => ({
+                            id: item.id,
+                            name: item.name,
+                            price: item.price
+                        }))
+                    }));
+                    setPricingData(normalizedData);
+                } else {
+                    // Database categories exist but have no items - use defaults
+                    console.log('Pricing categories have no items, using defaults');
+                    setPricingData(defaultPricingData);
+                }
             } catch (error) {
                 console.error('Failed to load pricing:', error);
                 setPricingData(defaultPricingData);

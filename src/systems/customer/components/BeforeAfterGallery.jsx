@@ -1,102 +1,124 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
-import { getGallery } from '../../../services/landingService';
 import { getGalleryUrl } from '../../../utils/assets';
 import './BeforeAfterGallery.css';
 
-// Default gallery items with real images
+// Default section header
+const defaultSection = {
+    title: 'Before & After',
+    subtitle: 'See the transformation - real repairs by our expert technicians'
+};
+
+// Default gallery items with real images (fallback)
 const defaultGalleryItems = [
     {
-        id: 1,
+        id: '1',
         title: 'iPhone Screen Repair',
         description: 'Shattered screen restored to brand new condition',
-        before_image: getGalleryUrl('phone-before.png'),
-        after_image: getGalleryUrl('phone-after.png'),
+        before_image: 'phone-before.png',
+        after_image: 'phone-after.png',
     },
     {
-        id: 2,
+        id: '2',
         title: 'MacBook Screen Replacement',
         description: 'Cracked display replaced with original parts',
-        before_image: getGalleryUrl('laptop-before.png'),
-        after_image: getGalleryUrl('laptop-after.png'),
+        before_image: 'laptop-before.png',
+        after_image: 'laptop-after.png',
     },
     {
-        id: 3,
+        id: '3',
         title: 'Samsung Galaxy Screen Repair',
         description: 'Severely cracked display restored to perfect condition',
-        before_image: getGalleryUrl('samsung-before.png'),
-        after_image: getGalleryUrl('samsung-after.png'),
+        before_image: 'samsung-before.png',
+        after_image: 'samsung-after.png',
     },
     {
-        id: 4,
+        id: '4',
         title: 'iPad Screen Replacement',
         description: 'Damaged tablet screen replaced with premium parts',
-        before_image: getGalleryUrl('ipad-before.png'),
-        after_image: getGalleryUrl('ipad-after.png'),
+        before_image: 'ipad-before.png',
+        after_image: 'ipad-after.png',
     },
     {
-        id: 5,
+        id: '5',
         title: 'iPhone Battery Replacement',
         description: 'Swollen battery replaced - 100% health restored',
-        before_image: getGalleryUrl('battery-before.png'),
-        after_image: getGalleryUrl('battery-after.png'),
+        before_image: 'battery-before.png',
+        after_image: 'battery-after.png',
     },
 ];
 
 const AUTO_PLAY_INTERVAL = 5000; // 5 seconds
 
-const BeforeAfterGallery = () => {
+// Helper to get gallery image URL
+const getImageUrl = (imagePath) => {
+    if (!imagePath) return '';
+    // If it's a full URL, use as-is
+    if (imagePath.startsWith('http')) return imagePath;
+    // Otherwise use getGalleryUrl helper
+    return getGalleryUrl(imagePath);
+};
+
+const BeforeAfterGallery = ({ section, items, loading }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [galleryItems, setGalleryItems] = useState(defaultGalleryItems);
     const [isAutoPlaying, setIsAutoPlaying] = useState(true);
     const [direction, setDirection] = useState(1);
 
-    // Load gallery items from database
-    useEffect(() => {
-        const loadGallery = async () => {
-            try {
-                const data = await getGallery();
-                if (data.length > 0) {
-                    setGalleryItems(data);
-                }
-            } catch (error) {
-                console.error('Failed to load gallery:', error);
-            }
-        };
-        loadGallery();
-    }, []);
+    // Use defaults if no data
+    const headerData = section?.title ? section : defaultSection;
+    const galleryItems = items?.length > 0 ? items : defaultGalleryItems;
+    const totalSlides = galleryItems.length;
 
     const nextSlide = useCallback(() => {
         setDirection(1);
-        setCurrentIndex((prev) => (prev + 1) % galleryItems.length);
-    }, [galleryItems.length]);
+        setCurrentIndex((prev) => (prev + 1) % totalSlides);
+    }, [totalSlides]);
 
     const prevSlide = useCallback(() => {
         setDirection(-1);
-        setCurrentIndex((prev) => (prev - 1 + galleryItems.length) % galleryItems.length);
-    }, [galleryItems.length]);
+        setCurrentIndex((prev) => (prev - 1 + totalSlides) % totalSlides);
+    }, [totalSlides]);
 
     const goToSlide = (index) => {
         setDirection(index > currentIndex ? 1 : -1);
         setCurrentIndex(index);
+        setIsAutoPlaying(false);
     };
 
     // Auto-play functionality
     useEffect(() => {
-        if (!isAutoPlaying || galleryItems.length <= 1) return;
+        if (!isAutoPlaying || totalSlides <= 1) return;
 
         const interval = setInterval(() => {
             nextSlide();
         }, AUTO_PLAY_INTERVAL);
 
         return () => clearInterval(interval);
-    }, [isAutoPlaying, nextSlide, galleryItems.length]);
+    }, [isAutoPlaying, nextSlide, totalSlides]);
 
     // Pause on hover
     const handleMouseEnter = () => setIsAutoPlaying(false);
     const handleMouseLeave = () => setIsAutoPlaying(true);
 
+    // Loading skeleton
+    if (loading) {
+        return (
+            <section className="gallery-section section-padding">
+                <div className="container">
+                    <div className="section-header text-center">
+                        <div className="skeleton" style={{ width: '220px', height: '40px', margin: '0 auto 16px' }}></div>
+                        <div className="skeleton" style={{ width: '450px', height: '24px', margin: '0 auto' }}></div>
+                    </div>
+                    <div className="gallery-showcase">
+                        <div className="skeleton" style={{ height: '400px', borderRadius: '16px' }}></div>
+                    </div>
+                </div>
+            </section>
+        );
+    }
+
+    // Don't render if no items
     if (galleryItems.length === 0) return null;
 
     const currentItem = galleryItems[currentIndex];
@@ -122,9 +144,10 @@ const BeforeAfterGallery = () => {
     return (
         <section className="gallery-section section-padding">
             <div className="container">
+                {/* Section Header - Dynamic */}
                 <div className="section-header text-center">
-                    <h2 className="section-title">Before & After</h2>
-                    <p className="section-subtitle">See the transformation - real repairs by our expert technicians</p>
+                    <h2 className="section-title">{headerData.title}</h2>
+                    <p className="section-subtitle">{headerData.subtitle}</p>
                 </div>
 
                 <div
@@ -152,7 +175,7 @@ const BeforeAfterGallery = () => {
                     </div>
 
                     <div className="gallery-main">
-                        <button className="gallery-nav-btn prev" onClick={prevSlide}>
+                        <button className="gallery-nav-btn prev" onClick={prevSlide} aria-label="Previous slide">
                             <ChevronLeft size={28} />
                         </button>
 
@@ -174,6 +197,7 @@ const BeforeAfterGallery = () => {
                                     }}
                                 >
                                     <div className="comparison-container">
+                                        {/* Before Side */}
                                         <div className="comparison-side before">
                                             <div className="side-label">
                                                 <span className="label-dot"></span>
@@ -181,13 +205,14 @@ const BeforeAfterGallery = () => {
                                             </div>
                                             <div className="side-image">
                                                 <img
-                                                    src={currentItem.before_image}
+                                                    src={getImageUrl(currentItem.before_image)}
                                                     alt={`${currentItem.title} - Before`}
                                                 />
                                                 <div className="image-overlay before-overlay"></div>
                                             </div>
                                         </div>
 
+                                        {/* Divider */}
                                         <div className="comparison-divider">
                                             <div className="divider-line"></div>
                                             <div className="divider-icon">
@@ -198,6 +223,7 @@ const BeforeAfterGallery = () => {
                                             <div className="divider-line"></div>
                                         </div>
 
+                                        {/* After Side */}
                                         <div className="comparison-side after">
                                             <div className="side-label">
                                                 <span className="label-dot"></span>
@@ -205,7 +231,7 @@ const BeforeAfterGallery = () => {
                                             </div>
                                             <div className="side-image">
                                                 <img
-                                                    src={currentItem.after_image}
+                                                    src={getImageUrl(currentItem.after_image)}
                                                     alt={`${currentItem.title} - After`}
                                                 />
                                                 <div className="image-overlay after-overlay"></div>
@@ -213,6 +239,7 @@ const BeforeAfterGallery = () => {
                                         </div>
                                     </div>
 
+                                    {/* Slide Info */}
                                     <div className="slide-info">
                                         <h3>{currentItem.title}</h3>
                                         <p>{currentItem.description}</p>
@@ -221,7 +248,7 @@ const BeforeAfterGallery = () => {
                             </AnimatePresence>
                         </div>
 
-                        <button className="gallery-nav-btn next" onClick={nextSlide}>
+                        <button className="gallery-nav-btn next" onClick={nextSlide} aria-label="Next slide">
                             <ChevronRight size={28} />
                         </button>
                     </div>
@@ -231,7 +258,7 @@ const BeforeAfterGallery = () => {
                         <div className="slide-counter">
                             <span className="current">{String(currentIndex + 1).padStart(2, '0')}</span>
                             <span className="separator">/</span>
-                            <span className="total">{String(galleryItems.length).padStart(2, '0')}</span>
+                            <span className="total">{String(totalSlides).padStart(2, '0')}</span>
                         </div>
                         <button
                             className="play-pause-btn"

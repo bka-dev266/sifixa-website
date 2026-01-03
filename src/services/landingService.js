@@ -5,29 +5,157 @@
 
 import { supabase } from './supabase';
 
+// Cache key for sessionStorage
+const LANDING_CACHE_KEY = 'sifixa_landing_cache';
+const CACHE_TTL = 1 * 60 * 1000; // 1 minute (reduced for faster updates)
+
 /**
- * Get all landing page content in parallel
- * Returns: { hero, services, testimonials, faq, sections }
+ * Clear the landing page cache - call this after admin updates content
+ */
+export const clearLandingCache = () => {
+    try {
+        sessionStorage.removeItem(LANDING_CACHE_KEY);
+        console.log('Landing cache cleared');
+    } catch (e) {
+        console.error('Failed to clear cache:', e);
+    }
+};
+
+/**
+ * Fetch with retry logic for reliability
+ * @param {Function} queryFn - async function that returns { data, error }
+ * @param {number} retries - number of retries (default 2)
+ * @returns {Promise<any>} - resolved data or null
+ */
+const fetchWithRetry = async (queryFn, retries = 2) => {
+    for (let i = 0; i <= retries; i++) {
+        try {
+            const { data, error } = await queryFn();
+            if (error) {
+                console.error(`Supabase query error (attempt ${i + 1}):`, error.message);
+                if (i === retries) return null;
+                await new Promise(r => setTimeout(r, 500 * (i + 1))); // Exponential backoff
+                continue;
+            }
+            return data;
+        } catch (e) {
+            console.error(`Fetch error (attempt ${i + 1}):`, e.message);
+            if (i === retries) return null;
+            await new Promise(r => setTimeout(r, 500 * (i + 1)));
+        }
+    }
+    return null;
+};
+
+/**
+ * Get cached landing data if valid
+ */
+const getCachedLanding = () => {
+    try {
+        const cached = sessionStorage.getItem(LANDING_CACHE_KEY);
+        if (cached) {
+            const { data, timestamp } = JSON.parse(cached);
+            if (Date.now() - timestamp < CACHE_TTL) {
+                console.log('Using cached landing data');
+                return data;
+            }
+        }
+    } catch (e) {
+        console.error('Cache read error:', e);
+    }
+    return null;
+};
+
+/**
+ * Cache landing data in sessionStorage
+ */
+const setCachedLanding = (data) => {
+    try {
+        sessionStorage.setItem(LANDING_CACHE_KEY, JSON.stringify({
+            data,
+            timestamp: Date.now()
+        }));
+    } catch (e) {
+        console.error('Cache write error:', e);
+    }
+};
+
+/**
+ * Get all landing page content in parallel with retry and caching
+ * Returns: { hero, services, testimonials, faq, sections, howItWorks, features, gallery }
  */
 export const getLanding = async () => {
-    const [heroRes, servicesRes, testimonialsRes, faqRes, sectionsRes] = await Promise.all([
-        supabase.from('landing_hero').select('*').eq('is_active', true).single(),
-        supabase.from('landing_services').select('*').eq('is_active', true).order('display_order'),
-        supabase.from('landing_testimonials').select('*').eq('is_active', true).order('display_order'),
-        supabase.from('landing_faq').select('*').eq('is_active', true).order('display_order'),
-        supabase.from('landing_sections').select('*').eq('is_active', true)
+    // Check cache first
+    const cached = getCachedLanding();
+    if (cached) return cached;
+
+    console.log('Fetching landing page data from Supabase...');
+
+    // Fetch all data in parallel with retry logic
+    const [heroData, servicesData, testimonialsData, faqData, sectionsData, howItWorksOptionsData, howItWorksStepsData, featuresData, galleryData] = await Promise.all([
+        fetchWithRetry(() =>
+            supabase.from('landing_hero').select('*').eq('is_active', true).maybeSingle()
+        ),
+        fetchWithRetry(() =>
+            supabase.from('landing_services').select('*').eq('is_active', true).order('display_order')
+        ),
+        fetchWithRetry(() =>
+            supabase.from('landing_testimonials').select('*').eq('is_active', true).order('display_order')
+        ),
+        fetchWithRetry(() =>
+            supabase.from('landing_faq').select('*').eq('is_active', true).order('display_order')
+        ),
+        fetchWithRetry(() =>
+            supabase.from('landing_sections').select('*').eq('is_active', true)
+        ),
+        fetchWithRetry(() =>
+            supabase.from('landing_how_it_works_options').select('*').eq('is_active', true).order('display_order')
+        ),
+        fetchWithRetry(() =>
+            supabase.from('landing_how_it_works_steps').select('*').eq('is_active', true).order('step_number')
+        ),
+        fetchWithRetry(() =>
+            supabase.from('landing_features').select('*').eq('is_active', true).order('display_order')
+        ),
+        fetchWithRetry(() =>
+            supabase.from('landing_gallery').select('*').eq('is_active', true).order('display_order')
+        )
     ]);
 
-    return {
-        hero: heroRes.data || getDefaultHero(),
-        services: servicesRes.data || [],
-        testimonials: testimonialsRes.data || [],
-        faq: faqRes.data || [],
-        sections: sectionsRes.data?.reduce((acc, s) => {
+    // Combine How It Works options with their steps
+    const howItWorksData = (howItWorksOptionsData || []).map(option => ({
+        ...option,
+        steps: (howItWorksStepsData || []).filter(step => step.option_id === option.id)
+    }));
+
+    const result = {
+        hero: heroData || getDefaultHero(),
+        services: servicesData || [],
+        testimonials: testimonialsData || [],
+        faq: faqData || [],
+        sections: (sectionsData || []).reduce((acc, s) => {
             acc[s.section_key] = { ...s, content: s.content || {} };
             return acc;
-        }, {}) || {}
+        }, {}),
+        howItWorks: howItWorksData,
+        features: featuresData || [],
+        gallery: galleryData || []
     };
+
+    // Cache the result
+    setCachedLanding(result);
+    console.log('Landing data fetched and cached:', {
+        hero: !!result.hero,
+        services: result.services.length,
+        testimonials: result.testimonials.length,
+        faq: result.faq.length,
+        sections: Object.keys(result.sections).length,
+        howItWorks: result.howItWorks.length,
+        features: result.features.length,
+        gallery: result.gallery.length
+    });
+
+    return result;
 };
 
 /**

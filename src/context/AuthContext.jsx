@@ -162,11 +162,18 @@ export const AuthProvider = ({ children }) => {
             const expiry = now + SESSION_TIMEOUT;
 
             setUser(authUser);
-            await loadUserData(authUser);
+
+            // Wait for role data to load completely before returning
+            const roleData = await authService.getPrimaryRole(authUser.id);
+            const userProfile = await authService.getProfile(authUser.id);
+
+            setProfile(userProfile);
+            setRole(roleData);
             setSessionExpiry(expiry);
             setLastActivity(now);
 
-            return { success: true, user: authUser };
+            console.log('Login complete - user:', authUser.id, 'role:', roleData);
+            return { success: true, user: authUser, role: roleData };
         } catch (error) {
             console.error('Login error:', error);
             return { success: false, error: error.message };

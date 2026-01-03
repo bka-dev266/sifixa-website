@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../context/AuthContext';
-import { landingService } from '../../../services/landingService';
+import { landingService, clearLandingCache } from '../../../services/landingService';
 import {
     Save, Plus, Trash2, Edit2, X, ChevronDown, ChevronUp,
     ArrowLeft, Image, Type, FileText, Star, MessageSquare, HelpCircle,
@@ -64,6 +64,10 @@ const LandingEditor = () => {
 
     const showMessage = (type, text) => {
         setMessage({ type, text });
+        // Clear landing cache on successful saves so changes appear immediately
+        if (type === 'success') {
+            clearLandingCache();
+        }
         setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     };
 

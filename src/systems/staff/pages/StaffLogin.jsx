@@ -11,7 +11,7 @@ const StaffLogin = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const { login, isAuthenticated, isStaff, role } = useAuth();
+    const { login, logout, isAuthenticated, isStaff, role } = useAuth();
     const navigate = useNavigate();
 
     // Redirect if already logged in as staff
@@ -35,16 +35,30 @@ const StaffLogin = () => {
         const result = await login(email, password);
 
         if (result.success) {
-            // The login was successful - redirect will happen via useEffect
-            // when isAuthenticated and isStaff update
-            // Give a moment for state to update then force check
-            setTimeout(() => {
+            // CRITICAL: Verify user is actually staff before allowing access
+            // Role data is now returned directly from login()
+            const roleData = result.role;
+            console.log('Staff login - Role check:', roleData);
+
+            if (!roleData || !roleData.isStaff) {
+                // Not a staff member - logout and show error
+                console.warn('Non-staff user attempted staff login:', email);
+                await logout();
+                setError('This login is for staff only. Please use the Customer Portal.');
                 setLoading(false);
-            }, 500);
+                return;
+            }
+
+            // Redirect based on role
+            if (roleData.name === 'admin') {
+                navigate('/admin', { replace: true });
+            } else {
+                navigate('/employee', { replace: true });
+            }
         } else {
             setError(result.error || 'Login failed. Please check your credentials.');
-            setLoading(false);
         }
+        setLoading(false);
     };
 
     return (
