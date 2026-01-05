@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
-    Smartphone, MapPin, Phone, Mail, Clock,
+    MapPin, Phone, Mail, Clock,
     Facebook, Twitter, Instagram, Linkedin, Youtube, ExternalLink
 } from 'lucide-react';
+import { useTheme } from '../../../context/ThemeContext';
 import { getFooterData } from '../../../services/settingsService';
+import LogoDark from '../../../assets/logo/dark.svg';
+import LogoLight from '../../../assets/logo/light.svg';
 import './Footer.css';
 
 // Platform icon mapping
@@ -69,6 +72,7 @@ const defaultLegalLinks = [
 const Footer = () => {
     const [footerData, setFooterData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const { theme } = useTheme();
 
     useEffect(() => {
         const loadFooterData = async () => {
@@ -124,8 +128,11 @@ const Footer = () => {
                 {/* Brand Column */}
                 <div className="footer-column brand-column">
                     <Link to="/" className="footer-logo">
-                        <Smartphone className="logo-icon" size={24} />
-                        <span className="logo-text">{settings.brand?.name || 'SIFIXA'}</span>
+                        <img
+                            src={theme === 'dark' ? LogoLight : LogoDark}
+                            alt="SIFIXA"
+                            className="footer-logo-img"
+                        />
                     </Link>
                     <p className="footer-description">
                         {settings.brand?.tagline || 'Premium Device Repair'}

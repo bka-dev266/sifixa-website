@@ -38,11 +38,15 @@
   color: var(--accent-primary);
 }
 
-.logo-text {
-  background: linear-gradient(to right, var(--text-primary), var(--text-secondary));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+.logo-img {
+  height: 180px;
+  width: auto;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .navbar-links {

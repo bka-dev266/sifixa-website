@@ -11,6 +11,7 @@ import Home from './systems/customer/pages/Home';
 import Services from './systems/customer/pages/Services';
 import Contact from './systems/customer/pages/Contact';
 import Booking from './systems/customer/pages/Booking';
+import BookingPage from './pages/BookingPage';
 import TrackBooking from './systems/customer/pages/TrackBooking';
 import SellDevice from './systems/customer/pages/SellDevice';
 import CustomerLogin from './systems/customer/pages/CustomerLogin';
@@ -43,7 +44,7 @@ function App() {
                   <Route path="/" element={<Home />} />
                   <Route path="/services" element={<Services />} />
                   <Route path="/contact" element={<Contact />} />
-                  <Route path="/booking" element={<Booking />} />
+                  <Route path="/book-repair" element={<Booking />} />
                   <Route path="/track" element={<TrackBooking />} />
                   <Route path="/sell" element={<SellDevice />} />
                   <Route path="/privacy" element={<PrivacyPolicy />} />
@@ -67,6 +68,9 @@ function App() {
                 {/* Login Pages (Separate from layout) */}
                 <Route path="/login" element={<CustomerLogin />} />
                 <Route path="/staff/login" element={<StaffLogin />} />
+
+                {/* Booking Page (Standalone full-screen wizard) */}
+                <Route path="/booking" element={<BookingPage />} />
 
                 {/* System 2: Staff Portal (Private Dashboards) */}
 

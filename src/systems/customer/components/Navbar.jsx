@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Smartphone, User, LogOut } from 'lucide-react';
+import { Menu, X, User, LogOut } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
+import { useTheme } from '../../../context/ThemeContext';
 import Button from '../../../components/Button';
 import ThemeToggle from '../../../components/ThemeToggle';
+import LogoDark from '../../../assets/logo/dark.svg';
+import LogoLight from '../../../assets/logo/light.svg';
 import './Navbar.css';
 
 const Navbar = () => {
@@ -13,6 +16,7 @@ const Navbar = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const { user, logout } = useAuth();
+    const { theme } = useTheme();
 
     useEffect(() => {
         const handleScroll = () => {
@@ -45,19 +49,22 @@ const Navbar = () => {
     return (
         <nav className={`navbar ${scrolled ? 'scrolled' : ''}`}>
             <div className="container navbar-container">
-                <Link to="/" className="navbar-logo">
-                    <Smartphone className="logo-icon" size={28} />
-                    <span className="logo-text">SIFIXA</span>
-                </Link>
+                <div className="navbar-brand">
+                    <Link to="/" className="navbar-logo">
+                        <img
+                            src={theme === 'dark' ? LogoLight : LogoDark}
+                            alt="SIFIXA"
+                            className="logo-img"
+                        />
+                    </Link>
+                    <ThemeToggle />
+                </div>
 
                 <div className={`navbar-links ${isOpen ? 'active' : ''}`}>
                     <Link to="/" className={`nav-link ${location.pathname === '/' ? 'active' : ''}`} onClick={() => setIsOpen(false)}>Home</Link>
-                    <Link to="/services" className={`nav-link ${location.pathname === '/services' ? 'active' : ''}`} onClick={() => setIsOpen(false)}>Services</Link>
                     <Link to="/track" className={`nav-link ${location.pathname === '/track' ? 'active' : ''}`} onClick={() => setIsOpen(false)}>Track Repair</Link>
                     <Link to="/sell" className={`nav-link ${location.pathname === '/sell' ? 'active' : ''}`} onClick={() => setIsOpen(false)}>Sell Device</Link>
-                    <Link to="/contact" className={`nav-link ${location.pathname === '/contact' ? 'active' : ''}`} onClick={() => setIsOpen(false)}>Contact</Link>
                     <div className="nav-cta">
-                        <ThemeToggle />
                         {user ? (
                             <div className="user-menu-container">
                                 <button
