@@ -3,89 +3,123 @@
     position: relative;
 }
 
-.pricing-grid {
+/* Simple 3-Card Layout */
+.pricing-cards-simple {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 24px;
-    margin-bottom: 50px;
+    margin-bottom: 40px;
 }
 
-.pricing-card {
+.pricing-card-simple {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: 20px;
-    padding: 28px;
+    padding: 32px 24px;
+    text-align: center;
     transition: all 0.3s ease;
+    position: relative;
 }
 
-.pricing-card:hover {
+.pricing-card-simple:hover {
     border-color: var(--accent-primary);
     box-shadow: 0 15px 40px rgba(59, 130, 246, 0.15);
     transform: translateY(-6px);
 }
 
-.pricing-card-header {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-bottom: 24px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid var(--border-color);
+.pricing-card-simple.popular {
+    border-color: var(--accent-primary);
+    background: linear-gradient(145deg, rgba(59, 130, 246, 0.08), rgba(16, 185, 129, 0.05));
 }
 
-.pricing-icon {
-    width: 48px;
-    height: 48px;
+.popular-badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
     background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-    border-radius: 12px;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 6px 16px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+.card-icon {
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(16, 185, 129, 0.1));
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    margin: 0 auto 20px;
+    color: var(--accent-primary);
 }
 
-.pricing-card-header h3 {
-    font-size: 1.15rem;
+.pricing-card-simple h3 {
+    font-size: 1.4rem;
     font-weight: 700;
     color: var(--text-primary);
+    margin-bottom: 16px;
 }
 
-.pricing-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.pricing-list li {
+.price-range {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 0;
-    border-bottom: 1px dashed var(--border-color);
+    align-items: baseline;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 16px;
 }
 
-.pricing-list li:last-child {
-    border-bottom: none;
-}
-
-.service-name {
-    font-size: 0.95rem;
+.price-range .from,
+.price-range .to {
+    font-size: 0.85rem;
     color: var(--text-secondary);
 }
 
-.service-price {
-    font-size: 0.95rem;
-    font-weight: 700;
+.price-range .price-from {
+    font-size: 1.8rem;
+    font-weight: 800;
     color: var(--accent-primary);
+}
+
+.price-range .price-to {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.card-description {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 24px;
+}
+
+.card-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: transparent;
+    border: 1px solid var(--accent-primary);
+    border-radius: 10px;
+    color: var(--accent-primary);
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.card-cta:hover {
+    background: var(--accent-primary);
+    color: white;
 }
 
 /* CTA */
 .pricing-cta {
     text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
 }
 
 .pricing-disclaimer {
@@ -95,39 +129,136 @@
 }
 
 /* Responsive */
-@media (max-width: 1024px) {
-    .pricing-grid {
-        grid-template-columns: repeat(2, 1fr);
+@media (max-width: 968px) {
+    .pricing-cards-simple {
+        grid-template-columns: 1fr;
+        gap: 20px;
+        max-width: 400px;
+        margin: 0 auto 40px;
     }
 }
 
 @media (max-width: 768px) {
-    .pricing-grid {
-        grid-template-columns: 1fr;
-        gap: 20px;
+    .pricing-section {
+        padding: 60px 0;
     }
 
-    .pricing-card {
+    .pricing-cards-simple {
+        gap: 16px;
+        max-width: 100%;
+    }
+
+    .pricing-card-simple {
         padding: 24px 20px;
+        border-radius: 16px;
     }
 
-    .pricing-card-header h3 {
-        font-size: 1.1rem;
+    .pricing-card-simple:hover {
+        transform: none;
+    }
+
+    .card-icon {
+        width: 56px;
+        height: 56px;
+        margin-bottom: 16px;
+    }
+
+    .card-icon svg {
+        width: 26px;
+        height: 26px;
+    }
+
+    .pricing-card-simple h3 {
+        font-size: 1.2rem;
+        margin-bottom: 12px;
+    }
+
+    .price-range .price-from {
+        font-size: 1.5rem;
+    }
+
+    .price-range .price-to {
+        font-size: 1rem;
+    }
+
+    .card-description {
+        font-size: 0.85rem;
+        margin-bottom: 20px;
+    }
+
+    .card-cta {
+        padding: 10px 20px;
+        font-size: 0.85rem;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .pricing-disclaimer {
+        font-size: 0.8rem;
     }
 }
 
 @media (max-width: 480px) {
-    .pricing-card {
+    .pricing-section {
+        padding: 50px 0;
+    }
+
+    .pricing-cards-simple {
+        gap: 12px;
+    }
+
+    .pricing-card-simple {
         padding: 20px 16px;
+        border-radius: 14px;
     }
 
-    .pricing-icon {
-        width: 40px;
-        height: 40px;
+    .popular-badge {
+        font-size: 0.7rem;
+        padding: 5px 12px;
+        top: -10px;
     }
 
-    .service-name,
-    .service-price {
+    .card-icon {
+        width: 48px;
+        height: 48px;
+        margin-bottom: 12px;
+    }
+
+    .card-icon svg {
+        width: 22px;
+        height: 22px;
+    }
+
+    .pricing-card-simple h3 {
+        font-size: 1.1rem;
+        margin-bottom: 10px;
+    }
+
+    .price-range {
+        gap: 6px;
+        margin-bottom: 12px;
+    }
+
+    .price-range .from,
+    .price-range .to {
+        font-size: 0.75rem;
+    }
+
+    .price-range .price-from {
+        font-size: 1.3rem;
+    }
+
+    .price-range .price-to {
         font-size: 0.9rem;
+    }
+
+    .card-description {
+        font-size: 0.8rem;
+        margin-bottom: 16px;
+    }
+
+    .card-cta {
+        padding: 10px 16px;
+        font-size: 0.8rem;
     }
 }

@@ -302,6 +302,87 @@ export const appointmentsApi = {
         }));
     },
 
+    /**
+     * Get time slot availability for a specific date with detailed capacity info
+     * Returns slots with remaining capacity and availability level indicators
+     * @param {string} date - Date in YYYY-MM-DD format
+     * @param {string|null} storeId - Optional store ID
+     */
+    getSlotAvailability: async (date, storeId = null) => {
+        // Get all active time slots
+        let slotsQuery = supabase
+            .from('time_slots')
+            .select('*')
+            .eq('is_active', true);
+
+        if (storeId) {
+            slotsQuery = slotsQuery.eq('store_id', storeId);
+        }
+
+        const { data: slots, error: slotsError } = await slotsQuery;
+        if (slotsError) {
+            console.error('Failed to fetch time slots:', slotsError);
+            return [];
+        }
+
+        // Get bookings for the date (exclude canceled and no_show)
+        const { data: bookings, error: bookingsError } = await supabase
+            .from('appointments')
+            .select('time_slot_id')
+            .eq('scheduled_date', date)
+            .not('status', 'in', '("canceled", "no_show")');
+
+        if (bookingsError) {
+            console.error('Failed to fetch bookings:', bookingsError);
+            // Return slots without booking counts if query fails
+            return (slots || []).map(slot => ({
+                id: slot.id,
+                name: slot.name,
+                startTime: slot.start_time,
+                endTime: slot.end_time,
+                maxBookings: slot.max_bookings || 3,
+                currentBookings: 0,
+                remainingSlots: slot.max_bookings || 3,
+                isAvailable: true,
+                availabilityLevel: 'available'
+            }));
+        }
+
+        // Count bookings per slot
+        const bookingCounts = {};
+        (bookings || []).forEach(b => {
+            if (b.time_slot_id) {
+                bookingCounts[b.time_slot_id] = (bookingCounts[b.time_slot_id] || 0) + 1;
+            }
+        });
+
+        // Return slots with detailed availability info
+        return (slots || []).map(slot => {
+            const maxBookings = slot.max_bookings || 3;
+            const currentBookings = bookingCounts[slot.id] || 0;
+            const remaining = maxBookings - currentBookings;
+
+            let availabilityLevel = 'available';
+            if (remaining === 0) {
+                availabilityLevel = 'full';
+            } else if (remaining === 1) {
+                availabilityLevel = 'limited';
+            }
+
+            return {
+                id: slot.id,
+                name: slot.name,
+                startTime: slot.start_time,
+                endTime: slot.end_time,
+                maxBookings: maxBookings,
+                currentBookings: currentBookings,
+                remainingSlots: remaining,
+                isAvailable: remaining > 0,
+                availabilityLevel: availabilityLevel
+            };
+        });
+    },
+
     // Get today's appointments
     getToday: async () => {
         const today = new Date().toISOString().split('T')[0];

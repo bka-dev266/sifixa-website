@@ -70,7 +70,7 @@ function App() {
                 <Route path="/staff/login" element={<StaffLogin />} />
 
                 {/* Booking Page (Standalone full-screen wizard) */}
-                <Route path="/booking" element={<BookingPage />} />
+                <Route path="/booking" element={<Booking />} />
 
                 {/* System 2: Staff Portal (Private Dashboards) */}
 

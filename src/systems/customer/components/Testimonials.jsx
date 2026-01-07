@@ -183,7 +183,7 @@ const Testimonials = ({ testimonials: propTestimonials, loading }) => {
                         </button>
                     </div>
 
-                    {/* Thumbnail previews */}
+                    {/* Thumbnail previews - commented out for later use
                     <div className="testimonial-thumbnails">
                         {testimonials.map((testimonial, index) => (
                             <button
@@ -202,6 +202,7 @@ const Testimonials = ({ testimonials: propTestimonials, loading }) => {
                             </button>
                         ))}
                     </div>
+                    */}
 
                     {/* Progress indicator */}
                     <div className="testimonial-progress">

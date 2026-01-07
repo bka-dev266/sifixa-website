@@ -193,8 +193,10 @@ const HowItWorks = ({ section, options, loading }) => {
                                             <div className="step-icon">
                                                 <StepIcon size={28} />
                                             </div>
-                                            <h4>{step.title}</h4>
-                                            <p>{step.description || step.desc}</p>
+                                            <div className="step-text">
+                                                <h4>{step.title}</h4>
+                                                <p>{step.description || step.desc}</p>
+                                            </div>
                                             {index < (currentOption?.steps?.length || 0) - 1 && (
                                                 <div className="step-arrow">
                                                     <ArrowRight size={20} />

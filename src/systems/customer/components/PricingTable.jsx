@@ -1,170 +1,82 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
-import { Smartphone, Tablet, Laptop, Battery, Monitor, HardDrive, ArrowRight } from 'lucide-react';
+import { Smartphone, Tablet, Laptop, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { getPricing } from '../../../services/landingService';
 import './PricingTable.css';
 
-// Icon mapping
-const iconMap = {
-    Smartphone, Tablet, Laptop, Battery, Monitor, HardDrive
-};
-
-const defaultPricingData = [
+const pricingCards = [
     {
-        category: 'Phone Screen', icon: 'Smartphone', items: [
-            { name: 'iPhone Screen Repair', price: 'From $79' },
-            { name: 'Samsung Screen Repair', price: 'From $69' },
-            { name: 'Other Android Screen', price: 'From $59' }
-        ]
+        id: 'phone',
+        title: 'Phone Repair',
+        icon: Smartphone,
+        priceFrom: '$20',
+        priceTo: '$500+',
+        description: 'Screen, battery, charging port, and more',
+        popular: true
     },
     {
-        category: 'Phone Battery', icon: 'Battery', items: [
-            { name: 'iPhone Battery', price: 'From $49' },
-            { name: 'Samsung Battery', price: 'From $45' },
-            { name: 'Other Android Battery', price: 'From $39' }
-        ]
+        id: 'tablet',
+        title: 'Tablet Repair',
+        icon: Tablet,
+        priceFrom: '$30',
+        priceTo: '$500+',
+        description: 'iPad, Samsung Tab, and other tablets',
+        popular: false
     },
     {
-        category: 'Tablet Repair', icon: 'Tablet', items: [
-            { name: 'iPad Screen Repair', price: 'From $129' },
-            { name: 'iPad Battery', price: 'From $79' },
-            { name: 'Samsung Tab Screen', price: 'From $99' }
-        ]
-    },
-    {
-        category: 'Laptop Repair', icon: 'Laptop', items: [
-            { name: 'Laptop Screen', price: 'From $149' },
-            { name: 'Laptop Battery', price: 'From $89' },
-            { name: 'Keyboard Replacement', price: 'From $99' }
-        ]
-    },
-    {
-        category: 'Desktop & PC', icon: 'Monitor', items: [
-            { name: 'OS Reinstall', price: 'From $49' },
-            { name: 'Virus Removal', price: 'From $59' },
-            { name: 'Hardware Upgrade', price: 'From $79' }
-        ]
-    },
-    {
-        category: 'Data Recovery', icon: 'HardDrive', items: [
-            { name: 'Basic Recovery', price: 'From $99' },
-            { name: 'Advanced Recovery', price: 'From $199' },
-            { name: 'SSD/HDD Failure', price: 'From $299' }
-        ]
+        id: 'computer',
+        title: 'Computer Repair',
+        icon: Laptop,
+        priceFrom: '$40',
+        priceTo: '$600+',
+        description: 'Laptops, desktops, and MacBooks',
+        popular: false
     }
 ];
 
-const PricingTable = ({ sectionHeader, loading: propLoading }) => {
-    const [pricingData, setPricingData] = useState([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const loadPricing = async () => {
-            try {
-                const data = await getPricing();
-                console.log('Pricing Data:', data); // Debug logging
-
-                // Check if we got categories AND they have items
-                // The Supabase query returns items as nested array under 'items' key
-                const hasValidData = data.length > 0 && data.some(cat =>
-                    cat.items && Array.isArray(cat.items) && cat.items.length > 0
-                );
-
-                if (hasValidData) {
-                    // Normalize the data structure to match what the component expects
-                    const normalizedData = data.map(cat => ({
-                        id: cat.id,
-                        category: cat.category,
-                        icon: cat.icon,
-                        items: (cat.items || []).map(item => ({
-                            id: item.id,
-                            name: item.name,
-                            price: item.price
-                        }))
-                    }));
-                    setPricingData(normalizedData);
-                } else {
-                    // Database categories exist but have no items - use defaults
-                    console.log('Pricing categories have no items, using defaults');
-                    setPricingData(defaultPricingData);
-                }
-            } catch (error) {
-                console.error('Failed to load pricing:', error);
-                setPricingData(defaultPricingData);
-            }
-            setLoading(false);
-        };
-        loadPricing();
-    }, []);
-
-    const isLoading = propLoading || loading;
-
-    // Helper to get icon safely
-    const getIcon = (iconName) => {
-        if (!iconName) return Smartphone;
-        // Direct match
-        if (iconMap[iconName]) return iconMap[iconName];
-        // Case-insensitive match
-        const key = Object.keys(iconMap).find(k => k.toLowerCase() === iconName.toLowerCase());
-        return key ? iconMap[key] : Smartphone;
-    };
-
+const PricingTable = ({ sectionHeader }) => {
     return (
         <section className="pricing-section section-padding">
             <div className="container">
                 <div className="section-header text-center">
                     <h2 className="section-title">{sectionHeader?.title || 'Transparent Pricing'}</h2>
-                    <p className="section-subtitle">{sectionHeader?.subtitle || 'No hidden fees. Get an instant estimate for your repair.'}</p>
+                    <p className="section-subtitle">{sectionHeader?.subtitle || 'Simple pricing based on your device type'}</p>
                 </div>
 
-                {isLoading ? (
-                    <div className="pricing-grid">
-                        {[1, 2, 3, 4, 5, 6].map((i) => (
-                            <div key={i} className="pricing-card skeleton">
-                                <div className="skeleton-header"></div>
-                                <div className="skeleton-list"></div>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="pricing-grid">
-                        {pricingData.map((cat, index) => {
-                            const Icon = getIcon(cat.icon);
-                            return (
-                                <motion.div
-                                    key={cat.id || cat.category}
-                                    className="pricing-card"
-                                    initial={{ opacity: 0, y: 20 }}
-                                    whileInView={{ opacity: 1, y: 0 }}
-                                    viewport={{ once: true }}
-                                    transition={{ delay: index * 0.1, duration: 0.4 }}
-                                >
-                                    <div className="pricing-card-header">
-                                        <div className="pricing-icon">
-                                            <Icon size={24} />
-                                        </div>
-                                        <h3>{cat.category}</h3>
-                                    </div>
-                                    <ul className="pricing-list">
-                                        {(cat.items || []).map((item, idx) => (
-                                            <li key={item.id || idx}>
-                                                <span className="service-name">{item.name}</span>
-                                                <span className="service-price">{item.price}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </motion.div>
-                            );
-                        })}
-                    </div>
-                )}
+                <div className="pricing-cards-simple">
+                    {pricingCards.map((card, index) => {
+                        const Icon = card.icon;
+                        return (
+                            <motion.div
+                                key={card.id}
+                                className={`pricing-card-simple ${card.popular ? 'popular' : ''}`}
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: index * 0.1, duration: 0.4 }}
+                            >
+                                {card.popular && <span className="popular-badge">Most Popular</span>}
+                                <div className="card-icon">
+                                    <Icon size={32} />
+                                </div>
+                                <h3>{card.title}</h3>
+                                <div className="price-range">
+                                    <span className="from">from</span>
+                                    <span className="price-from">{card.priceFrom}</span>
+                                    <span className="to">to</span>
+                                    <span className="price-to">{card.priceTo}</span>
+                                </div>
+                                <p className="card-description">{card.description}</p>
+                                <Link to="/booking" className="card-cta">
+                                    Get Quote <ArrowRight size={16} />
+                                </Link>
+                            </motion.div>
+                        );
+                    })}
+                </div>
 
                 <div className="pricing-cta">
-                    <p className="pricing-disclaimer">* Prices are estimates. Final price depends on device model and damage extent.</p>
-                    <Link to="/booking" className="btn btn-primary">
-                        Get Exact Quote <ArrowRight size={18} />
-                    </Link>
+                    <p className="pricing-disclaimer">* Final price depends on device model and damage extent. Free diagnosis!</p>
                 </div>
             </div>
         </section>
@@ -172,4 +84,3 @@ const PricingTable = ({ sectionHeader, loading: propLoading }) => {
 };
 
 export default PricingTable;
-

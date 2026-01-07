@@ -40,6 +40,9 @@ export { storeSettingsApi } from './storeSettings';
 // Legacy support - Services
 export { servicesApi } from './services';
 
+// Repair Services (for booking page)
+export { repairServicesApi } from './repairServices';
+
 // Unified API object for convenience
 export const api = {
     // Core
@@ -76,7 +79,10 @@ export const api = {
     storeSettings: storeSettingsApi,
 
     // Legacy
-    services: servicesApi
+    services: servicesApi,
+
+    // Repair Services
+    repairServices: repairServicesApi
 };
 
 // Import all for api object
@@ -98,5 +104,6 @@ import { messagingApi } from './messaging';
 import { reportingApi } from './reporting';
 import { storeSettingsApi } from './storeSettings';
 import { servicesApi } from './services';
+import { repairServicesApi } from './repairServices';
 
 export default api;

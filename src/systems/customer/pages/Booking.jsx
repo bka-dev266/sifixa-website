@@ -1,36 +1,52 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { CheckCircle, Clock, AlertCircle, UserPlus, Lock, Calendar, Smartphone, User, ArrowRight, ArrowLeft, Shield, Zap, Award, DollarSign, Star } from 'lucide-react';
+import {
+    CheckCircle, Clock, AlertCircle, UserPlus, Lock, Calendar,
+    Smartphone, Tablet, Laptop, User, ArrowRight, ArrowLeft,
+    Shield, Zap, Star, ChevronLeft, Copy
+} from 'lucide-react';
 import { motion } from 'framer-motion';
-import Button from '../../../components/Button';
 import { api } from '../../../services/apiClient';
-import { mockApi } from '../../../services/mockApi'; // Keep for user/account operations
+import { appointmentsApi, repairServicesApi } from '../../../services/api';
+import { mockApi } from '../../../services/mockApi';
 import { useAuth } from '../../../context/AuthContext';
 import { validatePhone, validateName, validateText, validateUsername, validateEmail } from '../../../utils/validation';
 import './Booking.css';
 
+// Device types configuration
+const DEVICE_TYPES = [
+    { id: 'phone', label: 'Phone', icon: Smartphone },
+    { id: 'tablet', label: 'Tablet', icon: Tablet },
+    { id: 'computer', label: 'Computer', icon: Laptop },
+];
+
+// Priority levels
+const PRIORITY_LEVELS = [
+    { id: 'regular', name: 'Standard', fee: 0, icon: Clock },
+    { id: 'priority', name: 'Priority', fee: 20, icon: Zap, popular: true },
+    { id: 'express', name: 'Express', fee: 40, icon: Star },
+];
+
 const Booking = () => {
     const [step, setStep] = useState(1);
-    const [bookingId, setBookingId] = useState('');
     const [trackingNumber, setTrackingNumber] = useState('');
-    const [existingBookings, setExistingBookings] = useState([]);
+    const [availableServices, setAvailableServices] = useState([]);
     const [timeSlots, setTimeSlots] = useState([]);
-    const [services, setServices] = useState([]);
+    const [loadingServices, setLoadingServices] = useState(false);
+    const [loadingSlots, setLoadingSlots] = useState(false);
     const [createAccount, setCreateAccount] = useState(false);
     const [accountCreated, setAccountCreated] = useState(false);
     const [formData, setFormData] = useState({
-        // Device info - structured for database
-        deviceType: 'phone',
+        deviceType: '',
         deviceBrand: '',
         deviceModel: '',
-        // Service - by ID for database linking
         serviceId: '',
-        serviceType: '', // kept for display
+        serviceName: '',
         issue: '',
-        priorityLevel: 'regular', // regular | priority | express
+        priorityLevel: 'regular',
         date: '',
         time: '',
-        timeSlotId: '', // for database linking
+        timeSlotId: '',
         name: '',
         email: '',
         phone: '',
@@ -39,46 +55,10 @@ const Booking = () => {
         confirmPassword: ''
     });
 
-    // Priority levels configuration
-    const priorityLevels = [
-        {
-            id: 'regular',
-            name: 'Regular',
-            badge: 'Standard',
-            fee: 0,
-            description: 'Next available slot',
-            turnaround: 'Standard turnaround',
-            icon: Clock
-        },
-        {
-            id: 'priority',
-            name: 'Priority',
-            badge: 'Premium',
-            fee: 20,
-            description: 'Moved ahead in the queue',
-            turnaround: 'Faster service',
-            icon: Zap,
-            popular: true
-        },
-        {
-            id: 'express',
-            name: 'Express',
-            badge: 'Pro',
-            fee: 40,
-            description: 'Same-day / fastest available',
-            turnaround: 'Priority handling',
-            icon: Star
-        }
-    ];
-
     const { user, login } = useAuth();
     const navigate = useNavigate();
 
-    useEffect(() => {
-        window.scrollTo(0, 0);
-    }, []);
-
-    // Pre-fill form if user is logged in
+    // Pre-fill if logged in
     useEffect(() => {
         if (user) {
             setFormData(prev => ({
@@ -90,639 +70,402 @@ const Booking = () => {
         }
     }, [user]);
 
-    // Fetch existing bookings and time slots
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [bookings, slots, servicesData] = await Promise.all([
-                    api.bookings.list(),
-                    api.timeSlots.list(),
-                    api.services.list()
-                ]);
-                setExistingBookings(bookings || []);
-                setTimeSlots((slots || []).filter(s => s.active));
-                setServices((servicesData || []).filter(s => s.active));
-            } catch (error) {
-                console.error('Failed to fetch data:', error);
-            }
-        };
-        fetchData();
-    }, []);
+    // Load services when device type selected
+    const handleDeviceTypeSelect = async (deviceType) => {
+        setFormData(prev => ({ ...prev, deviceType, serviceId: '', serviceName: '' }));
+        setLoadingServices(true);
+        try {
+            const services = await repairServicesApi.getByDeviceType(deviceType);
+            setAvailableServices(services);
+        } catch (error) {
+            console.error('Failed to load services:', error);
+            setAvailableServices([]);
+        }
+        setLoadingServices(false);
+    };
 
-    // Get availability for a specific date and time slot
-    const getSlotAvailability = (date, slot) => {
-        if (!date) return { available: true, count: 0, max: slot.maxBookings };
+    // Load slot availability when date selected
+    const handleDateSelect = async (date) => {
+        setFormData(prev => ({ ...prev, date, time: '', timeSlotId: '' }));
+        setLoadingSlots(true);
+        try {
+            const slots = await appointmentsApi.getSlotAvailability(date);
+            setTimeSlots(slots);
+        } catch (error) {
+            console.error('Failed to load slots:', error);
+            setTimeSlots([]);
+        }
+        setLoadingSlots(false);
+    };
 
-        const bookingsForSlot = existingBookings.filter(
-            b => b.date === date && b.time === slot.name && b.status !== 'Cancelled'
-        );
+    const handleServiceSelect = (service) => {
+        setFormData(prev => ({ ...prev, serviceId: service.id, serviceName: service.name }));
+    };
 
-        return {
-            available: bookingsForSlot.length < slot.maxBookings,
-            count: bookingsForSlot.length,
-            max: slot.maxBookings
-        };
+    const handleTimeSlotSelect = (slot) => {
+        if (slot.isAvailable) {
+            setFormData(prev => ({ ...prev, time: slot.name, timeSlotId: slot.id }));
+        }
     };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         let sanitizedValue = value;
-
-        // Apply validation based on field type
         switch (name) {
-            case 'name':
-                sanitizedValue = validateName(value);
-                break;
-            case 'phone':
-                sanitizedValue = validatePhone(value);
-                break;
-            case 'email':
-                sanitizedValue = validateEmail(value);
-                break;
-            case 'username':
-                sanitizedValue = validateUsername(value);
-                break;
-            case 'device':
-            case 'issue':
-                sanitizedValue = validateText(value);
-                break;
-            default:
-                sanitizedValue = value;
+            case 'name': sanitizedValue = validateName(value); break;
+            case 'phone': sanitizedValue = validatePhone(value); break;
+            case 'email': sanitizedValue = validateEmail(value); break;
+            case 'username': sanitizedValue = validateUsername(value); break;
+            default: sanitizedValue = validateText(value);
         }
-
-        setFormData({ ...formData, [name]: sanitizedValue });
+        setFormData(prev => ({ ...prev, [name]: sanitizedValue }));
     };
 
     const nextStep = () => setStep(step + 1);
     const prevStep = () => setStep(step - 1);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        console.log('🔵 BOOKING SUBMIT STARTED');
-        console.log('Form Data:', formData);
+    const getMinDate = () => new Date().toISOString().split('T')[0];
 
-        // Validate account creation fields if enabled
-        if (createAccount) {
-            if (!formData.username) {
-                alert('Please enter a username');
-                return;
-            }
-            if (formData.password.length < 6) {
-                alert('Password must be at least 6 characters');
-                return;
-            }
-            if (formData.password !== formData.confirmPassword) {
-                alert('Passwords do not match');
-                return;
-            }
-        }
-
-        try {
-            // Create account first if requested
-            if (createAccount && !user) {
-                const users = await mockApi.getUsers();
-                if (users.find(u => u.username.toLowerCase() === formData.username.toLowerCase())) {
-                    alert('Username already exists. Please choose another.');
-                    return;
-                }
-
-                // Create user account
-                await mockApi.addUser({
-                    name: formData.name,
-                    username: formData.username,
-                    email: formData.email,
-                    phone: formData.phone,
-                    password: formData.password,
-                    role: 'customer'
-                });
-
-                // Create customer record
-                await mockApi.addCustomer({
-                    name: formData.name,
-                    email: formData.email,
-                    phone: formData.phone,
-                    totalBookings: 1,
-                    lastVisit: new Date().toISOString().split('T')[0],
-                    notes: 'Created during booking',
-                    tags: []
-                });
-
-                setAccountCreated(true);
-
-                // Auto-login the new user
-                await login(formData.username, formData.password);
-            }
-
-            const selectedService = services.find(s => s.id === formData.serviceId || s.name === formData.serviceType);
-            const basePrice = selectedService ? (selectedService.priceMin + selectedService.priceMax) / 2 : 0;
-            const priorityFee = priorityLevels.find(p => p.id === formData.priorityLevel)?.fee || 0;
-
-            const bookingData = {
-                // Structured device info for creating device record
-                device: {
-                    type: formData.deviceType,
-                    brand: formData.deviceBrand,
-                    model: formData.deviceModel
-                },
-                // Service with ID for database linking
-                serviceId: formData.serviceId || selectedService?.id || null,
-                issue: formData.issue,
-                priorityLevel: formData.priorityLevel,
-                date: formData.date,
-                timeSlotId: formData.timeSlotId || null,
-                customer: {
-                    name: formData.name,
-                    email: formData.email,
-                    phone: formData.phone
-                }
-            };
-            console.log('🟢 Calling api.bookings.create with:', bookingData);
-            const result = await api.bookings.create(bookingData);
-            console.log('✅ Booking created successfully:', result);
-            setBookingId(result.booking_id);
-            setTrackingNumber(result.tracking_number);
-            setStep(4); // Success step
-        } catch (error) {
-            console.error('❌ Booking failed:', error);
-            console.error('Error details:', error.message, error.stack);
-            alert('Failed to submit booking. Please try again.');
-        }
-    };
-
-    // Get minimum date (today)
-    const getMinDate = () => {
-        const today = new Date();
-        return today.toISOString().split('T')[0];
-    };
-
+    const canProceedStep1 = () => formData.deviceType && formData.deviceBrand.trim() && formData.deviceModel.trim() && formData.serviceId && formData.issue.trim();
+    const canProceedStep2 = () => formData.date && formData.timeSlotId;
     const canConfirmBooking = () => {
         const basicValid = formData.name.trim() && formData.email.trim() && formData.phone.trim();
         if (!createAccount) return basicValid;
         return basicValid && formData.username && formData.password.length >= 6 && formData.password === formData.confirmPassword;
     };
 
-    const features = [
-        { icon: Zap, title: 'Quick Service', description: 'Same-day repairs', color: 'blue' },
-        { icon: Shield, title: '30-Day Warranty', description: 'On all repairs', color: 'green' },
-        { icon: Award, title: 'Expert Techs', description: 'Certified specialists', color: 'purple' },
-    ];
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            if (createAccount && !user) {
+                const users = await mockApi.getUsers();
+                if (users.find(u => u.username.toLowerCase() === formData.username.toLowerCase())) {
+                    alert('Username already exists.');
+                    return;
+                }
+                await mockApi.addUser({ name: formData.name, username: formData.username, email: formData.email, phone: formData.phone, password: formData.password, role: 'customer' });
+                await mockApi.addCustomer({ name: formData.name, email: formData.email, phone: formData.phone, totalBookings: 1, lastVisit: new Date().toISOString().split('T')[0], notes: 'Created during booking', tags: [] });
+                setAccountCreated(true);
+                await login(formData.username, formData.password);
+            }
+
+            const bookingData = {
+                device: { type: formData.deviceType, brand: formData.deviceBrand, model: formData.deviceModel },
+                serviceId: formData.serviceId,
+                issue: formData.issue,
+                priorityLevel: formData.priorityLevel,
+                date: formData.date,
+                timeSlotId: formData.timeSlotId,
+                customer: { name: formData.name, email: formData.email, phone: formData.phone }
+            };
+            const result = await api.bookings.create(bookingData);
+            setTrackingNumber(result.tracking_number);
+            setStep(4);
+        } catch (error) {
+            console.error('Booking failed:', error);
+            alert('Failed to submit booking. Please try again.');
+        }
+    };
+
+    const selectedService = availableServices.find(s => s.id === formData.serviceId);
+    const priorityFee = PRIORITY_LEVELS.find(p => p.id === formData.priorityLevel)?.fee || 0;
 
     return (
-        <div className="booking-page">
-            {/* Hero Section */}
-            <section className="booking-hero">
-                <div className="container">
-                    <motion.div
-                        className="booking-hero-content"
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6 }}
-                    >
-                        <span className="hero-badge">Book a Repair</span>
-                        <h1>Schedule Your Device Repair</h1>
-                        <p>Book an appointment in minutes. Our expert technicians will get your device working like new.</p>
-                    </motion.div>
-                </div>
-            </section>
-
-            {/* Features Section */}
-            <section className="booking-features-section">
-                <div className="container">
-                    <div className="features-row">
-                        {features.map((feature, index) => (
-                            <motion.div
-                                key={feature.title}
-                                className="feature-item"
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.4, delay: index * 0.1 }}
-                            >
-                                <div className={`feature-icon-small ${feature.color}`}>
-                                    <feature.icon size={20} />
-                                </div>
-                                <div>
-                                    <h3>{feature.title}</h3>
-                                    <p>{feature.description}</p>
-                                </div>
-                            </motion.div>
+        <div className="booking-wizard">
+            {/* Header */}
+            <header className="booking-header">
+                <div className="header-content">
+                    <button className="back-btn" onClick={() => step > 1 ? prevStep() : navigate('/')}>
+                        <ChevronLeft size={20} />
+                        <span>Back</span>
+                    </button>
+                    <div className="step-dots">
+                        {[1, 2, 3].map(num => (
+                            <div key={num} className={`step-dot ${step >= num ? 'active' : ''} ${step > num ? 'completed' : ''}`}>
+                                {step > num ? <CheckCircle size={14} /> : num}
+                            </div>
                         ))}
                     </div>
+                    <div className="step-info">Step {Math.min(step, 3)} of 3</div>
                 </div>
-            </section>
+            </header>
 
-            {/* Form Section */}
-            <section className="booking-form-section">
-                <div className="container">
-                    <motion.div
-                        className="booking-form-card"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: 0.2 }}
-                    >
-                        {/* Step Indicator */}
-                        {step < 4 && (
-                            <div className="step-indicator">
-                                <div className="step-progress-bar">
-                                    <div className="step-progress-fill" style={{ width: `${((step - 1) / 2) * 100}%` }}></div>
-                                </div>
-                                <div className="step-items">
-                                    <div className={`step ${step >= 1 ? 'active' : ''} ${step > 1 ? 'completed' : ''}`}>
-                                        <span className="step-number">1</span>
-                                        <span className="step-label">Device</span>
-                                    </div>
-                                    <div className={`step ${step >= 2 ? 'active' : ''} ${step > 2 ? 'completed' : ''}`}>
-                                        <span className="step-number">2</span>
-                                        <span className="step-label">Schedule</span>
-                                    </div>
-                                    <div className={`step ${step >= 3 ? 'active' : ''}`}>
-                                        <span className="step-number">3</span>
-                                        <span className="step-label">Contact</span>
-                                    </div>
+            {/* Main Content */}
+            <main className="booking-main">
+                <div className="booking-container">
+                    {/* STEP 1: Device & Service */}
+                    {step === 1 && (
+                        <motion.div className="step-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                            <div className="step-header">
+                                <Smartphone size={24} />
+                                <div>
+                                    <h2>Device & Service</h2>
+                                    <p>Select your device and the repair service needed</p>
                                 </div>
                             </div>
-                        )}
 
-                        {step === 1 && (
-                            <motion.div
-                                className="form-step"
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.3 }}
-                            >
-                                <div className="form-step-header">
-                                    <Smartphone size={24} />
-                                    <div>
-                                        <h2>Device Information</h2>
-                                        <p>Tell us about your device and the issue</p>
-                                    </div>
-                                </div>
-
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>Device Type *</label>
-                                        <select name="deviceType" value={formData.deviceType} onChange={handleChange}>
-                                            <option value="phone">Phone</option>
-                                            <option value="tablet">Tablet</option>
-                                            <option value="laptop">Laptop</option>
-                                            <option value="desktop">Desktop</option>
-                                            <option value="watch">Smart Watch</option>
-                                            <option value="console">Game Console</option>
-                                            <option value="other">Other</option>
-                                        </select>
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Brand *</label>
-                                        <input type="text" name="deviceBrand" placeholder="e.g. Apple, Samsung, Dell" value={formData.deviceBrand} onChange={handleChange} />
-                                    </div>
-                                </div>
-                                <div className="form-group">
-                                    <label>Model *</label>
-                                    <input type="text" name="deviceModel" placeholder="e.g. iPhone 14 Pro, Galaxy S23, MacBook Air" value={formData.deviceModel} onChange={handleChange} />
-                                </div>
-                                <div className="form-group">
-                                    <label>Service Type *</label>
-                                    <select name="serviceType" value={formData.serviceType} onChange={(e) => {
-                                        const selectedService = services.find(s => s.name === e.target.value);
-                                        setFormData({
-                                            ...formData,
-                                            serviceType: e.target.value,
-                                            serviceId: selectedService?.id || ''
-                                        });
-                                    }}>
-                                        <option value="">Select a service...</option>
-                                        {services.map(service => (
-                                            <option key={service.id} value={service.name}>
-                                                {service.name} (${service.priceMin} - ${service.priceMax})
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="form-group">
-                                    <label>Issue Description *</label>
-                                    <textarea name="issue" placeholder="Describe the problem..." rows="4" value={formData.issue} onChange={handleChange}></textarea>
-                                </div>
-
-                                {/* Priority Service Selection */}
-                                {formData.serviceType && (
-                                    <div className="priority-section">
-                                        <div className="priority-header">
-                                            <Zap size={20} />
-                                            <div>
-                                                <h3>Priority Service</h3>
-                                                <p>Choose how fast you want your repair handled. Priority options add a service fee and move your repair ahead in the queue.</p>
-                                            </div>
+                            {/* Device Type */}
+                            <div className="section-group">
+                                <label className="section-label">Device Type</label>
+                                <div className="device-grid">
+                                    {DEVICE_TYPES.map(d => (
+                                        <div key={d.id} className={`device-btn ${formData.deviceType === d.id ? 'selected' : ''}`} onClick={() => handleDeviceTypeSelect(d.id)}>
+                                            <d.icon size={24} />
+                                            <span>{d.label}</span>
                                         </div>
-                                        <div className="priority-options">
-                                            {priorityLevels.map(level => {
-                                                const Icon = level.icon;
-                                                return (
-                                                    <div
-                                                        key={level.id}
-                                                        className={`priority-card ${formData.priorityLevel === level.id ? 'selected' : ''} ${level.popular ? 'popular' : ''}`}
-                                                        onClick={() => setFormData({ ...formData, priorityLevel: level.id })}
-                                                    >
-                                                        {level.popular && <span className="popular-badge">Most Popular</span>}
-                                                        <div className="priority-card-header">
-                                                            <div className="priority-icon">
-                                                                <Icon size={20} />
-                                                            </div>
-                                                            <div className="priority-info">
-                                                                <span className="priority-name">{level.name}</span>
-                                                                <span className="priority-badge">{level.badge}</span>
-                                                            </div>
-                                                            <div className="priority-fee">
-                                                                {level.fee === 0 ? (
-                                                                    <span className="fee-free">$0 extra</span>
-                                                                ) : (
-                                                                    <span className="fee-amount">+${level.fee}</span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                        <p className="priority-description">{level.description}</p>
-                                                        <div className="priority-radio">
-                                                            <input
-                                                                type="radio"
-                                                                name="priorityLevel"
-                                                                value={level.id}
-                                                                checked={formData.priorityLevel === level.id}
-                                                                onChange={() => setFormData({ ...formData, priorityLevel: level.id })}
-                                                            />
-                                                            <span className="radio-custom"></span>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-
-                                        {/* Price Summary */}
-                                        <div className="price-summary">
-                                            <h4><DollarSign size={18} /> Price Summary</h4>
-                                            <div className="summary-row">
-                                                <span>Repair Estimate:</span>
-                                                <span>
-                                                    {(() => {
-                                                        const service = services.find(s => s.name === formData.serviceType);
-                                                        return service ? `$${service.priceMin} - $${service.priceMax}` : '--';
-                                                    })()}
-                                                </span>
-                                            </div>
-                                            <div className="summary-row">
-                                                <span>Priority add-on:</span>
-                                                <span className={priorityLevels.find(p => p.id === formData.priorityLevel)?.fee > 0 ? 'highlight' : ''}>
-                                                    +${priorityLevels.find(p => p.id === formData.priorityLevel)?.fee || 0}
-                                                </span>
-                                            </div>
-                                            <div className="summary-row total">
-                                                <span>Estimated Total:</span>
-                                                <span>
-                                                    {(() => {
-                                                        const service = services.find(s => s.name === formData.serviceType);
-                                                        const fee = priorityLevels.find(p => p.id === formData.priorityLevel)?.fee || 0;
-                                                        if (!service) return '--';
-                                                        return `$${service.priceMin + fee} - $${service.priceMax + fee}`;
-                                                    })()}
-                                                </span>
-                                            </div>
-                                            <p className="summary-disclaimer">
-                                                Turnaround depends on device condition and parts availability.
-                                            </p>
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="step-actions">
-                                    <div></div>
-                                    <Button variant="primary" onClick={nextStep} disabled={!formData.deviceBrand.trim() || !formData.deviceModel.trim() || !formData.serviceType || !formData.issue.trim()}>
-                                        Next Step <ArrowRight size={18} />
-                                    </Button>
+                                    ))}
                                 </div>
-                            </motion.div>
-                        )}
+                            </div>
 
-                        {step === 2 && (
-                            <motion.div
-                                className="form-step"
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.3 }}
-                            >
-                                <div className="form-step-header">
-                                    <Calendar size={24} />
-                                    <div>
-                                        <h2>Date & Time</h2>
-                                        <p>Select your preferred appointment time</p>
-                                    </div>
-                                </div>
-
-                                <div className="form-group">
-                                    <label>Preferred Date *</label>
-                                    <input
-                                        type="date"
-                                        name="date"
-                                        value={formData.date}
-                                        onChange={handleChange}
-                                        min={getMinDate()}
-                                    />
-                                </div>
-
-                                <div className="form-group">
-                                    <label>Available Time Slots</label>
-                                    {formData.date ? (
-                                        <div className="time-slots-grid">
-                                            {timeSlots.length > 0 ? timeSlots.map(slot => {
-                                                const availability = getSlotAvailability(formData.date, slot);
-                                                return (
-                                                    <div
-                                                        key={slot.id}
-                                                        className={`time-slot-card ${formData.time === slot.name ? 'selected' : ''} ${!availability.available ? 'unavailable' : ''}`}
-                                                        onClick={() => availability.available && setFormData({ ...formData, time: slot.name, timeSlotId: slot.id })}
-                                                    >
-                                                        <div className="slot-header">
-                                                            <Clock size={18} />
-                                                            <span className="slot-name">{slot.name}</span>
-                                                        </div>
-                                                        <div className="slot-time">{slot.startTime} - {slot.endTime}</div>
-                                                        <div className={`slot-availability ${availability.available ? 'available' : 'full'}`}>
-                                                            {availability.available ? (
-                                                                <>
-                                                                    <CheckCircle size={14} />
-                                                                    <span>{availability.max - availability.count} slots available</span>
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <AlertCircle size={14} />
-                                                                    <span>Fully booked</span>
-                                                                </>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            }) : (
-                                                <p className="select-date-hint">No time slots configured. Please contact the shop.</p>
+                            {/* Services */}
+                            {formData.deviceType && (
+                                <div className="section-group">
+                                    <label className="section-label">Service</label>
+                                    {loadingServices ? (
+                                        <div className="loading-box"><div className="spinner"></div></div>
+                                    ) : availableServices.length > 0 ? (
+                                        <div className="service-select-wrapper">
+                                            <select
+                                                className="service-select"
+                                                value={formData.serviceId}
+                                                onChange={(e) => {
+                                                    const service = availableServices.find(s => s.id === e.target.value);
+                                                    if (service) handleServiceSelect(service);
+                                                }}
+                                            >
+                                                <option value="">Select a service...</option>
+                                                {availableServices.map(s => (
+                                                    <option key={s.id} value={s.id}>
+                                                        {s.name} — ${s.priceMin}-${s.priceMax}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {formData.serviceId && selectedService && (
+                                                <div className="selected-service-info">
+                                                    <span className="service-desc">{selectedService.description}</span>
+                                                    <span className="service-meta">~{selectedService.durationEstimate} min • {selectedService.warrantyDays} day warranty</span>
+                                                </div>
                                             )}
                                         </div>
                                     ) : (
-                                        <p className="select-date-hint">Please select a date first to see available time slots</p>
+                                        <p className="hint-text">No services available. Run SQL migration first.</p>
                                     )}
                                 </div>
+                            )}
 
-                                <div className="step-actions">
-                                    <Button variant="secondary" onClick={prevStep}>
-                                        <ArrowLeft size={18} /> Back
-                                    </Button>
-                                    <Button variant="primary" onClick={nextStep} disabled={!formData.date || !formData.time}>
-                                        Next Step <ArrowRight size={18} />
-                                    </Button>
-                                </div>
-                            </motion.div>
-                        )}
-
-                        {step === 3 && (
-                            <motion.div
-                                className="form-step"
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.3 }}
-                            >
-                                <div className="form-step-header">
-                                    <User size={24} />
-                                    <div>
-                                        <h2>Contact Details</h2>
-                                        <p>How can we reach you?</p>
+                            {/* Device Details */}
+                            {formData.serviceId && (
+                                <div className="section-group">
+                                    <label className="section-label">Device Details</label>
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label>Brand *</label>
+                                            <input
+                                                type="text"
+                                                name="deviceBrand"
+                                                placeholder="e.g., Apple, Samsung"
+                                                value={formData.deviceBrand}
+                                                onChange={handleChange}
+                                                autoComplete="off"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label>Model *</label>
+                                            <input
+                                                type="text"
+                                                name="deviceModel"
+                                                placeholder="e.g., iPhone 14, Galaxy S23"
+                                                value={formData.deviceModel}
+                                                onChange={handleChange}
+                                                autoComplete="off"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Describe the Issue *</label>
+                                        <textarea
+                                            name="issue"
+                                            placeholder="What's wrong with your device?"
+                                            rows="3"
+                                            value={formData.issue}
+                                            onChange={handleChange}
+                                        ></textarea>
                                     </div>
                                 </div>
+                            )}
 
-                                {user && (
-                                    <div className="logged-in-notice">
-                                        <CheckCircle size={18} />
-                                        <span>Logged in as <strong>{user.name || user.username}</strong></span>
+
+                        </motion.div>
+                    )}
+
+                    {/* STEP 2: Date & Time */}
+                    {step === 2 && (
+                        <motion.div className="step-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                            <div className="step-header">
+                                <Calendar size={24} />
+                                <div>
+                                    <h2>Schedule</h2>
+                                    <p>Choose your preferred date and time</p>
+                                </div>
+                            </div>
+
+                            <div className="section-group">
+                                <label className="section-label">Date</label>
+                                <input type="date" value={formData.date} onChange={(e) => handleDateSelect(e.target.value)} min={getMinDate()} className="date-input" />
+                            </div>
+
+                            {formData.date && (
+                                <div className="section-group">
+                                    <label className="section-label">Time Slot</label>
+                                    {loadingSlots ? (
+                                        <div className="loading-box"><div className="spinner"></div></div>
+                                    ) : (
+                                        <div className="slot-grid">
+                                            {timeSlots.map(slot => (
+                                                <div key={slot.id} className={`slot-btn ${formData.timeSlotId === slot.id ? 'selected' : ''} ${!slot.isAvailable ? 'disabled' : ''}`} onClick={() => handleTimeSlotSelect(slot)}>
+                                                    <span className="slot-name">{slot.name}</span>
+                                                    <span className="slot-time">{slot.startTime} - {slot.endTime}</span>
+                                                    <span className={`slot-status ${slot.availabilityLevel}`}>
+                                                        {slot.remainingSlots === 0 ? 'Full' : slot.remainingSlots === 1 ? '1 left' : `${slot.remainingSlots} available`}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Priority */}
+                            {formData.timeSlotId && (
+                                <div className="section-group">
+                                    <label className="section-label">Priority</label>
+                                    <div className="priority-grid">
+                                        {PRIORITY_LEVELS.map(p => (
+                                            <div key={p.id} className={`priority-btn ${formData.priorityLevel === p.id ? 'selected' : ''}`} onClick={() => setFormData(prev => ({ ...prev, priorityLevel: p.id }))}>
+                                                <p.icon size={18} />
+                                                <span>{p.name}</span>
+                                                <span className="priority-fee">{p.fee === 0 ? 'Free' : `+$${p.fee}`}</span>
+                                            </div>
+                                        ))}
                                     </div>
-                                )}
+                                </div>
+                            )}
+                        </motion.div>
+                    )}
 
+                    {/* STEP 3: Contact */}
+                    {step === 3 && (
+                        <motion.div className="step-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                            <div className="step-header">
+                                <User size={24} />
+                                <div>
+                                    <h2>Contact</h2>
+                                    <p>Your contact information</p>
+                                </div>
+                            </div>
+
+                            {user && (
+                                <div className="logged-notice"><CheckCircle size={16} /> Logged in as <strong>{user.name || user.username}</strong></div>
+                            )}
+
+                            <div className="section-group">
                                 <div className="form-group">
                                     <label>Name *</label>
-                                    <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Your full name" />
+                                    <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Your name" />
                                 </div>
                                 <div className="form-row">
                                     <div className="form-group">
                                         <label>Email *</label>
-                                        <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="your@email.com" />
+                                        <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="email@example.com" />
                                     </div>
                                     <div className="form-group">
                                         <label>Phone *</label>
                                         <input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="(555) 123-4567" />
                                     </div>
                                 </div>
+                            </div>
 
-                                {!user && (
-                                    <div className="create-account-section">
-                                        <label className="checkbox-label">
-                                            <input
-                                                type="checkbox"
-                                                checked={createAccount}
-                                                onChange={(e) => setCreateAccount(e.target.checked)}
-                                            />
-                                            <UserPlus size={16} />
-                                            <span>Create an account to track your repairs</span>
-                                        </label>
-
-                                        {createAccount && (
-                                            <motion.div
-                                                className="account-fields"
-                                                initial={{ opacity: 0, height: 0 }}
-                                                animate={{ opacity: 1, height: 'auto' }}
-                                            >
+                            {!user && (
+                                <div className="account-toggle">
+                                    <label className="checkbox-label">
+                                        <input type="checkbox" checked={createAccount} onChange={(e) => setCreateAccount(e.target.checked)} />
+                                        <UserPlus size={16} />
+                                        <span>Create account to track repairs</span>
+                                    </label>
+                                    {createAccount && (
+                                        <div className="account-fields">
+                                            <div className="form-group">
+                                                <label>Username</label>
+                                                <input type="text" name="username" value={formData.username} onChange={handleChange} placeholder="Choose username" />
+                                            </div>
+                                            <div className="form-row">
                                                 <div className="form-group">
-                                                    <label><Lock size={14} /> Username</label>
-                                                    <input
-                                                        type="text"
-                                                        name="username"
-                                                        value={formData.username}
-                                                        onChange={handleChange}
-                                                        placeholder="Choose a username"
-                                                    />
+                                                    <label>Password</label>
+                                                    <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="Min 6 chars" />
                                                 </div>
-                                                <div className="form-row">
-                                                    <div className="form-group">
-                                                        <label><Lock size={14} /> Password</label>
-                                                        <input
-                                                            type="password"
-                                                            name="password"
-                                                            value={formData.password}
-                                                            onChange={handleChange}
-                                                            placeholder="Min 6 characters"
-                                                        />
-                                                    </div>
-                                                    <div className="form-group">
-                                                        <label><Lock size={14} /> Confirm Password</label>
-                                                        <input
-                                                            type="password"
-                                                            name="confirmPassword"
-                                                            value={formData.confirmPassword}
-                                                            onChange={handleChange}
-                                                            placeholder="Re-enter password"
-                                                        />
-                                                    </div>
+                                                <div className="form-group">
+                                                    <label>Confirm</label>
+                                                    <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} placeholder="Confirm" />
                                                 </div>
-                                            </motion.div>
-                                        )}
-                                    </div>
-                                )}
-
-                                <div className="step-actions">
-                                    <Button variant="secondary" onClick={prevStep}>
-                                        <ArrowLeft size={18} /> Back
-                                    </Button>
-                                    <Button variant="primary" onClick={handleSubmit} disabled={!canConfirmBooking()}>
-                                        Confirm Booking <CheckCircle size={18} />
-                                    </Button>
-                                </div>
-                            </motion.div>
-                        )}
-
-                        {step === 4 && (
-                            <motion.div
-                                className="booking-success"
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ duration: 0.5 }}
-                            >
-                                <div className="success-icon-wrapper">
-                                    <CheckCircle size={60} />
-                                </div>
-                                <h2>Booking Confirmed!</h2>
-                                <div className="booking-id-box">
-                                    <span>Your Tracking Number</span>
-                                    <strong style={{ fontSize: '1.5rem', letterSpacing: '1px' }}>{trackingNumber}</strong>
-                                </div>
-                                {accountCreated && (
-                                    <div className="account-created-notice">
-                                        <UserPlus size={18} />
-                                        <span>Your account has been created! You're now logged in.</span>
-                                    </div>
-                                )}
-                                <p>Save this tracking number to follow your repair progress. We'll contact you shortly to confirm your appointment.</p>
-                                <div className="success-actions">
-                                    {(user || accountCreated) ? (
-                                        <Button variant="primary" onClick={() => navigate('/customer/profile')}>
-                                            Go to My Profile <ArrowRight size={18} />
-                                        </Button>
-                                    ) : (
-                                        <Link to={`/track`}>
-                                            <Button variant="primary">
-                                                Track Repair <ArrowRight size={18} />
-                                            </Button>
-                                        </Link>
+                                            </div>
+                                        </div>
                                     )}
-                                    <Link to="/">
-                                        <Button variant="secondary">Back to Home</Button>
-                                    </Link>
                                 </div>
-                            </motion.div>
-                        )}
-                    </motion.div>
+                            )}
+
+                            {/* Summary */}
+                            <div className="booking-summary">
+                                <div className="summary-row"><span>Device</span><span>{formData.deviceBrand} {formData.deviceModel}</span></div>
+                                <div className="summary-row"><span>Service</span><span>{formData.serviceName}</span></div>
+                                <div className="summary-row"><span>Date/Time</span><span>{formData.date} • {formData.time}</span></div>
+                                <div className="summary-row total">
+                                    <span>Estimated</span>
+                                    <span>{selectedService ? `$${selectedService.priceMin + priorityFee} - $${selectedService.priceMax + priorityFee}` : '--'}</span>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {/* STEP 4: Success */}
+                    {step === 4 && (
+                        <motion.div className="step-content success-content" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
+                            <div className="success-icon"><CheckCircle size={48} /></div>
+                            <h2>Booking Confirmed!</h2>
+                            <div className="tracking-box">
+                                <span>Tracking Number</span>
+                                <strong>{trackingNumber}</strong>
+                                <button onClick={() => navigator.clipboard.writeText(trackingNumber)}><Copy size={16} /></button>
+                            </div>
+                            {accountCreated && <div className="logged-notice"><UserPlus size={16} /> Account created!</div>}
+                            <p>We'll contact you to confirm your appointment.</p>
+                            <div className="success-actions">
+                                <Link to={(user || accountCreated) ? '/customer/profile' : '/track'}><button className="btn-primary">{(user || accountCreated) ? 'My Profile' : 'Track Repair'} <ArrowRight size={16} /></button></Link>
+                                <Link to="/"><button className="btn-secondary">Home</button></Link>
+                            </div>
+                        </motion.div>
+                    )}
                 </div>
-            </section>
+            </main>
+
+            {/* Footer Actions */}
+            {step < 4 && (
+                <footer className="booking-footer">
+                    <div className="footer-content">
+                        {step > 1 ? (
+                            <button className="btn-secondary" onClick={prevStep}><ArrowLeft size={16} /> Back</button>
+                        ) : <div></div>}
+                        {step < 3 ? (
+                            <button className="btn-primary" onClick={nextStep} disabled={step === 1 ? !canProceedStep1() : !canProceedStep2()}>
+                                Next <ArrowRight size={16} />
+                            </button>
+                        ) : (
+                            <button className="btn-primary confirm" onClick={handleSubmit} disabled={!canConfirmBooking()}>
+                                Confirm <CheckCircle size={16} />
+                            </button>
+                        )}
+                    </div>
+                </footer>
+            )}
         </div>
     );
 };

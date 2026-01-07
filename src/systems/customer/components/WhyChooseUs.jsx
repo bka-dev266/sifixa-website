@@ -89,8 +89,10 @@ const WhyChooseUs = ({ section, features, loading }) => {
                                 <div className="feature-icon">
                                     <IconComponent size={32} />
                                 </div>
-                                <h3>{feature.title}</h3>
-                                <p>{feature.description}</p>
+                                <div className="feature-text">
+                                    <h3>{feature.title}</h3>
+                                    <p>{feature.description}</p>
+                                </div>
                             </motion.div>
                         );
                     })}
