@@ -168,6 +168,48 @@ export const onAuthStateChange = (callback) => {
     return supabase.auth.onAuthStateChange(callback);
 };
 
+/**
+ * Request password reset email
+ */
+export const resetPasswordRequest = async (email) => {
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/login?reset=true`
+    });
+
+    if (error) throw error;
+    return data;
+};
+
+/**
+ * Sign in with Google OAuth
+ */
+export const signInWithGoogle = async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+            redirectTo: `${window.location.origin}/login`
+        }
+    });
+
+    if (error) throw error;
+    return data;
+};
+
+/**
+ * Sign in with Apple OAuth
+ */
+export const signInWithApple = async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'apple',
+        options: {
+            redirectTo: `${window.location.origin}/login`
+        }
+    });
+
+    if (error) throw error;
+    return data;
+};
+
 export default {
     signIn,
     signUp,
@@ -179,5 +221,8 @@ export default {
     isStaff,
     updateProfile,
     assignRole,
-    onAuthStateChange
+    onAuthStateChange,
+    resetPasswordRequest,
+    signInWithGoogle,
+    signInWithApple
 };

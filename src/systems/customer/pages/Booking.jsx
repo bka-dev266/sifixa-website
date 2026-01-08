@@ -8,8 +8,8 @@ import {
 import { motion } from 'framer-motion';
 import { api } from '../../../services/apiClient';
 import { appointmentsApi, repairServicesApi } from '../../../services/api';
-import { mockApi } from '../../../services/mockApi';
 import { useAuth } from '../../../context/AuthContext';
+import { useToast } from '../../../context/NotificationContext';
 import { validatePhone, validateName, validateText, validateUsername, validateEmail } from '../../../utils/validation';
 import './Booking.css';
 
@@ -55,8 +55,9 @@ const Booking = () => {
         confirmPassword: ''
     });
 
-    const { user, login } = useAuth();
+    const { user, signup } = useAuth();
     const navigate = useNavigate();
+    const toast = useToast();
 
     // Pre-fill if logged in
     useEffect(() => {
@@ -137,16 +138,19 @@ const Booking = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            // Create account using Supabase Auth if requested
             if (createAccount && !user) {
-                const users = await mockApi.getUsers();
-                if (users.find(u => u.username.toLowerCase() === formData.username.toLowerCase())) {
-                    alert('Username already exists.');
+                const signupResult = await signup(formData.email, formData.password, {
+                    full_name: formData.name,
+                    username: formData.username,
+                    phone: formData.phone
+                });
+
+                if (!signupResult.success) {
+                    toast.error(signupResult.error || 'Failed to create account. Please try again.');
                     return;
                 }
-                await mockApi.addUser({ name: formData.name, username: formData.username, email: formData.email, phone: formData.phone, password: formData.password, role: 'customer' });
-                await mockApi.addCustomer({ name: formData.name, email: formData.email, phone: formData.phone, totalBookings: 1, lastVisit: new Date().toISOString().split('T')[0], notes: 'Created during booking', tags: [] });
                 setAccountCreated(true);
-                await login(formData.username, formData.password);
             }
 
             const bookingData = {
@@ -163,7 +167,7 @@ const Booking = () => {
             setStep(4);
         } catch (error) {
             console.error('Booking failed:', error);
-            alert('Failed to submit booking. Please try again.');
+            toast.error('Failed to submit booking. Please try again.');
         }
     };
 

@@ -647,12 +647,42 @@
 }
 
 @media (max-width: 480px) {
+    .sell-hero {
+        padding: 90px 0 30px;
+    }
+
     .sell-hero h1 {
         font-size: 1.8rem;
     }
 
+    .sell-features-section {
+        display: none;
+    }
+
     .features-grid {
-        grid-template-columns: 1fr;
+        display: none;
+    }
+
+    .feature-card:hover {
+        transform: none;
+        box-shadow: none;
+    }
+
+    .feature-icon {
+        width: 44px;
+        height: 44px;
+        margin: 0;
+        flex-shrink: 0;
+        border-radius: 12px;
+    }
+
+    .feature-card h3 {
+        font-size: 0.95rem;
+        margin-bottom: 2px;
+    }
+
+    .feature-card p {
+        font-size: 0.8rem;
     }
 
     .device-type-card {

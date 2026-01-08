@@ -157,15 +157,16 @@
     gap: 12px;
   }
 
-  /* Horizontal card layout on small screens */
+  /* Horizontal layout without card styling on small screens */
   .feature-card {
     display: flex;
     flex-direction: row;
     align-items: center;
     text-align: left;
     gap: 14px;
-    padding: 16px;
-    border-radius: 12px;
+    padding: 12px 0;
+    background: transparent;
+    border-radius: 0;
   }
 
   .feature-icon {

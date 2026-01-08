@@ -332,18 +332,15 @@
 
   .footer-legal {
     justify-content: center;
-    gap: 4px;
-    flex-wrap: wrap;
   }
 
   .footer-legal a {
     font-size: 0.8rem;
-    padding: 6px 8px;
+    padding: 4px 6px;
   }
 
-  /* Remove bullet separators on mobile */
   .footer-legal a:not(:last-child)::after {
-    content: none;
+    margin-left: 6px;
   }
 }
 
@@ -390,30 +387,12 @@
     font-size: 0.8rem;
   }
 
-  .footer-legal {
-    display: grid;
-    grid-template-columns: repeat(2, auto);
-    gap: 8px 12px;
-    justify-content: center;
+  .footer-legal a {
+    font-size: 0.8rem;
+    padding: 4px 6px;
   }
 
-  .footer-legal a {
-    font-size: 0.75rem;
-    padding: 6px 8px;
-    text-align: center;
+  .footer-legal a:not(:last-child)::after {
+    margin-left: 6px;
   }
 }
-
-@media (max-width: 360px) {
-  .footer-legal {
-    grid-template-columns: 1fr;
-    gap: 6px;
-  }
-
-  .footer-legal a {
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: 6px;
-    padding: 8px 12px;
-  }
-}
-

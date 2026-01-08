@@ -7,7 +7,7 @@ import './SellDevice.css';
 
 const deviceTypes = [
     { id: 'phone', name: 'Smartphone', icon: Smartphone },
-    { id: 'laptop', name: 'Laptop', icon: Laptop },
+    { id: 'laptop', name: 'Computer', icon: Laptop },
     { id: 'tablet', name: 'Tablet', icon: Tablet },
     { id: 'watch', name: 'Smartwatch', icon: Watch },
 ];
@@ -27,6 +27,7 @@ const SellDevice = () => {
         model: '',
         condition: '',
         storage: '',
+        batteryHealth: '',
         name: '',
         email: '',
         phone: '',
@@ -66,6 +67,7 @@ const SellDevice = () => {
                 model: formData.model,
                 condition: formData.condition,
                 storage: formData.storage,
+                batteryHealth: formData.batteryHealth,
                 name: formData.name,
                 email: formData.email,
                 phone: formData.phone,
@@ -261,17 +263,31 @@ const SellDevice = () => {
                                         </div>
                                     </div>
 
-                                    <div className="form-group">
-                                        <label>Storage Capacity (optional)</label>
-                                        <select name="storage" value={formData.storage} onChange={handleInputChange}>
-                                            <option value="">Select storage</option>
-                                            <option value="32gb">32 GB</option>
-                                            <option value="64gb">64 GB</option>
-                                            <option value="128gb">128 GB</option>
-                                            <option value="256gb">256 GB</option>
-                                            <option value="512gb">512 GB</option>
-                                            <option value="1tb">1 TB+</option>
-                                        </select>
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label>Storage Capacity (optional)</label>
+                                            <select name="storage" value={formData.storage} onChange={handleInputChange}>
+                                                <option value="">Select storage</option>
+                                                <option value="32gb">32 GB</option>
+                                                <option value="64gb">64 GB</option>
+                                                <option value="128gb">128 GB</option>
+                                                <option value="256gb">256 GB</option>
+                                                <option value="512gb">512 GB</option>
+                                                <option value="1tb">1 TB+</option>
+                                            </select>
+                                        </div>
+                                        <div className="form-group">
+                                            <label>Battery Health % (optional)</label>
+                                            <input
+                                                type="number"
+                                                name="batteryHealth"
+                                                value={formData.batteryHealth}
+                                                onChange={handleInputChange}
+                                                placeholder="e.g., 85"
+                                                min="0"
+                                                max="100"
+                                            />
+                                        </div>
                                     </div>
 
                                     <div className="step-actions">

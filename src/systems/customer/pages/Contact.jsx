@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import Button from '../../../components/Button';
 import { api } from '../../../services/apiClient';
 import { mockApi } from '../../../services/mockApi'; // Keep for settings
+import { useToast } from '../../../context/NotificationContext';
 import './Contact.css';
 
 const Contact = () => {
@@ -13,6 +14,7 @@ const Contact = () => {
         address: '123 Tech Street, New York, NY 10001',
         businessHours: 'Mon-Sat: 9AM - 8PM'
     });
+    const toast = useToast();
 
     const [formData, setFormData] = useState({
         name: '',
@@ -43,11 +45,11 @@ const Contact = () => {
                 subject: formData.subject,
                 message: formData.message
             });
-            alert('Message sent! We\'ll get back to you within 24 hours.');
+            toast.success('Message sent! We\'ll get back to you within 24 hours.');
             setFormData({ name: '', email: '', subject: '', message: '' });
         } catch (error) {
             console.error('Failed to send message:', error);
-            alert('Failed to send message. Please try again.');
+            toast.error('Failed to send message. Please try again.');
         }
     };
 

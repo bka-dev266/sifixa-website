@@ -11,6 +11,15 @@ export const useNotifications = () => {
     return context;
 };
 
+// Simple hook for toast only (for replacing alert() calls)
+export const useToast = () => {
+    const context = useContext(NotificationContext);
+    if (!context) {
+        throw new Error('useToast must be used within NotificationProvider');
+    }
+    return context.toast;
+};
+
 export const NotificationProvider = ({ children }) => {
     const [notifications, setNotifications] = useState([]);
     const [toasts, setToasts] = useState([]);
@@ -35,6 +44,30 @@ export const NotificationProvider = ({ children }) => {
 
         return newNotification;
     }, []);
+
+    // Simple toast function for replacing alert() calls
+    const showToast = useCallback((message, type = 'info', duration = 4000) => {
+        const id = Date.now() + Math.random();
+        const newToast = { id, message, type, title: null };
+
+        setToasts(prev => [...prev, newToast]);
+
+        if (duration > 0) {
+            setTimeout(() => {
+                setToasts(prev => prev.filter(t => t.id !== id));
+            }, duration);
+        }
+
+        return id;
+    }, []);
+
+    // Convenience methods for toast
+    const toast = {
+        success: (message, duration) => showToast(message, 'success', duration),
+        error: (message, duration) => showToast(message, 'error', duration),
+        warning: (message, duration) => showToast(message, 'warning', duration),
+        info: (message, duration) => showToast(message, 'info', duration),
+    };
 
     const markAsRead = useCallback((id) => {
         setNotifications(prev =>
@@ -62,6 +95,8 @@ export const NotificationProvider = ({ children }) => {
             toasts,
             unreadCount,
             addNotification,
+            showToast,
+            toast,
             markAsRead,
             markAllAsRead,
             clearNotifications,

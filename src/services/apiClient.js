@@ -619,37 +619,96 @@ export const sellDeviceApi = {
             }
         }
 
-        // Create device record
-        const { data: device, error: deviceError } = await supabase
-            .from('devices')
+        // Create trade-in request in dedicated table
+        const { data: tradeIn, error: tradeInError } = await supabase
+            .from('device_trade_ins')
             .insert([{
                 customer_id: customerId,
                 device_type: deviceData.deviceType || 'phone',
                 brand: deviceData.brand || null,
                 model: deviceData.model || null,
-                condition_notes: `Condition: ${deviceData.condition}\nStorage: ${deviceData.storage || 'N/A'}\nNotes: ${deviceData.notes || 'None'}\nEstimated Value: $${deviceData.estimatedPrice || 0}`
+                storage: deviceData.storage || null,
+                battery_health: deviceData.batteryHealth ? parseInt(deviceData.batteryHealth) : null,
+                condition: deviceData.condition || 'good',
+                condition_notes: deviceData.notes || null,
+                estimated_price: deviceData.estimatedPrice || null,
+                customer_name: deviceData.name || null,
+                customer_email: deviceData.email || null,
+                customer_phone: deviceData.phone || null,
+                status: 'pending'
             }])
             .select()
             .single();
 
-        if (deviceError) throw deviceError;
+        if (tradeInError) throw tradeInError;
 
         // Create a notification event for staff
         await supabase
             .from('notification_events')
             .insert([{
                 customer_id: customerId,
-                type: 'system',
-                title: 'Device Trade-In Request',
-                message: `${deviceData.name} wants to sell their ${deviceData.brand} ${deviceData.model}. Estimated value: $${deviceData.estimatedPrice}`
+                event_type: 'trade_in_request',
+                channel: 'in_app',
+                subject: 'Device Trade-In Request',
+                body: `${deviceData.name} wants to sell their ${deviceData.brand} ${deviceData.model}. Condition: ${deviceData.condition}. Battery: ${deviceData.batteryHealth || 'N/A'}%. Estimated value: $${deviceData.estimatedPrice}`
             }]);
 
         return {
             success: true,
-            deviceId: device.id,
+            tradeInId: tradeIn.id,
             customerId: customerId,
             estimatedPrice: deviceData.estimatedPrice
         };
+    },
+
+    /**
+     * Get all trade-in requests (for staff)
+     */
+    list: async (filters = {}) => {
+        let query = supabase
+            .from('device_trade_ins')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (filters.status) {
+            query = query.eq('status', filters.status);
+        }
+
+        if (filters.limit) {
+            query = query.limit(filters.limit);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+        return data || [];
+    },
+
+    /**
+     * Update trade-in status
+     */
+    updateStatus: async (id, status, finalOffer = null) => {
+        const updates = {
+            status,
+            updated_at: new Date().toISOString()
+        };
+
+        if (finalOffer !== null) {
+            updates.final_offer = finalOffer;
+        }
+
+        if (status === 'offer_sent' || status === 'accepted' || status === 'rejected') {
+            updates.reviewed_at = new Date().toISOString();
+        }
+
+        const { data, error } = await supabase
+            .from('device_trade_ins')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
     }
 };
 
