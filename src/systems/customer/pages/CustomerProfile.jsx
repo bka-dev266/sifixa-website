@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { api } from '../../../services/apiClient';
-import { mockApi } from '../../../services/mockApi'; // Keep for legacy operations
+import { mockApi } from '../../../services/mockApi'; // Legacy fallback
+import { customerPortalApi } from '../../../services/customerPortalApi';
 import { generateInvoicePDF } from '../../../utils/pdfGenerator';
 import Button from '../../../components/Button';
 import ThemeToggle from '../../../components/ThemeToggle';
@@ -18,7 +19,10 @@ import {
     Lock, Unlock, ThumbsUp, MessageCircle, Ticket, Percent, Headphones, Loader2, Info
 } from 'lucide-react';
 import { getDeviceName, getCustomerName, getBookingDate } from '../../../utils/schemaHelpers';
+import { SkeletonOverview, SkeletonNotifications, SkeletonDeviceGrid, SkeletonCard } from '../../../components/Skeleton';
+import EmptyState from '../../../components/EmptyState';
 import './CustomerProfile.css';
+import '../../../components/Skeleton.css';
 
 const CustomerProfile = () => {
     const { user, logout, updateUser } = useAuth();
@@ -80,64 +84,105 @@ const CustomerProfile = () => {
         if (!user) return;
         setLoading(true);
         try {
-            // Get customer profile
-            const customers = await mockApi.getCustomers();
-            const customer = customers.find(c => c.email === user.email);
+            // Get customer profile from Supabase or fallback
+            let customer = null;
+            let custId = user.id;
+
+            try {
+                const { data: customerResult } = await api.customers.list({ email: user.email });
+                if (customerResult && customerResult.length > 0) {
+                    customer = customerResult[0];
+                    custId = customer.id;
+                }
+            } catch (e) {
+                // Fallback to mockApi for customer lookup
+                const customers = await mockApi.getCustomers();
+                customer = customers.find(c => c.email === user.email);
+                custId = customer?.id || user.id;
+            }
+
             setCustomerData(customer);
-            const custId = customer?.id || user.id;
             setCustomerId(custId);
 
-            // Parallel load all data
-            const [
-                allBookings, servicesData, timeSlotsData, devicesData,
-                notificationsData, loyaltyData, invoicesData, favoritesData,
-                referralsData, refCode, warrantiesData, paymentMethodsData,
-                settingsData, reviewsData, reviewableData, chatHistory
-            ] = await Promise.all([
-                mockApi.getBookings(),
-                mockApi.getServices(),
-                mockApi.getTimeSlots(),
-                mockApi.getCustomerDevices(custId),
-                mockApi.getCustomerNotifications(custId),
-                mockApi.getCustomerLoyalty(custId),
-                mockApi.getCustomerInvoices(custId),
-                mockApi.getCustomerFavorites(custId),
-                mockApi.getCustomerReferrals(custId),
-                mockApi.generateReferralCode(custId),
-                mockApi.getCustomerWarranties(custId),
-                mockApi.getCustomerPaymentMethods(custId),
-                mockApi.getCustomerSettings(custId),
-                mockApi.getCustomerReviews(custId),
-                mockApi.getReviewableBookings(user.email),
-                mockApi.getLiveChatHistory(custId)
+            // Load data from real API with mockApi fallbacks
+            // Real API calls
+            const realApiPromises = Promise.allSettled([
+                api.bookings.list({ customer_id: custId }),
+                api.services.list(),
+                api.timeSlots.list(),
+                customerPortalApi.devices.getByCustomer(custId),
+                customerPortalApi.notifications.getByCustomer(custId),
+                customerPortalApi.loyalty.getByCustomer(custId),
+                customerPortalApi.invoices.getByCustomer(custId),
+                customerPortalApi.referrals.getByCustomer(custId),
+                customerPortalApi.referrals.getOrCreateCode(custId),
+                customerPortalApi.warranties.getByCustomer(custId),
+                customerPortalApi.settings.getByCustomer(custId),
+                customerPortalApi.reviews.getByCustomer(custId),
+                customerPortalApi.reviews.getReviewableBookings(custId)
             ]);
 
-            // Filter bookings for this customer
-            const customerBookings = allBookings.filter(
-                b => b.customer?.email === user.email || b.customer?.name?.toLowerCase() === user.name?.toLowerCase()
-            );
-            setBookings(customerBookings);
-            setServices(servicesData);
-            setTimeSlots(timeSlotsData.filter(s => s.active));
-            setDevices(devicesData);
-            setNotifications(notificationsData);
-            setLoyalty(loyaltyData);
-            setInvoices(invoicesData);
-            setFavorites(favoritesData);
-            setReferrals(referralsData);
-            setReferralCode(refCode);
-            setWarranties(warrantiesData);
-            setPaymentMethods(paymentMethodsData);
-            setCustomerSettings(settingsData);
-            setReviews(reviewsData);
-            setReviewableBookings(reviewableData);
-            setLiveChatMessages(chatHistory);
+            const results = await realApiPromises;
 
-            // Mock messages
+            // Helper to extract result or fallback
+            const getResult = (index, fallback = []) => {
+                const result = results[index];
+                if (result.status === 'fulfilled' && result.value) {
+                    // Handle both direct arrays and {data: array} responses
+                    return result.value.data || result.value;
+                }
+                return fallback;
+            };
+
+            // Set state from results with fallbacks
+            const bookingsData = getResult(0) || [];
+            // Filter bookings for this customer if needed
+            const customerBookings = Array.isArray(bookingsData)
+                ? bookingsData.filter(b =>
+                    b.customer_id === custId ||
+                    b.customer?.email === user.email
+                )
+                : [];
+            setBookings(customerBookings);
+
+            const servicesData = getResult(1) || [];
+            setServices(Array.isArray(servicesData) ? servicesData : []);
+
+            const timeSlotsData = getResult(2) || [];
+            setTimeSlots(Array.isArray(timeSlotsData) ? timeSlotsData.filter(s => s.active) : []);
+
+            // Customer portal data
+            setDevices(getResult(3) || []);
+            setNotifications(getResult(4) || []);
+            setLoyalty(getResult(5) || { points: 0, tier: 'Bronze', lifetime_points: 0 });
+            setInvoices(getResult(6) || []);
+            setReferrals(getResult(7) || []);
+            setReferralCode(getResult(8) || `SFX-${user.id?.slice(0, 6).toUpperCase() || 'NEW'}`);
+            setWarranties(getResult(9) || []);
+            setCustomerSettings(getResult(10) || { email_notifications: true, sms_notifications: true });
+            setReviews(getResult(11) || []);
+            setReviewableBookings(getResult(12) || []);
+
+            // Load additional data from mockApi (features not yet in Supabase)
+            try {
+                const [favoritesData, paymentMethodsData, chatHistory] = await Promise.all([
+                    mockApi.getCustomerFavorites(custId),
+                    mockApi.getCustomerPaymentMethods(custId),
+                    mockApi.getLiveChatHistory(custId)
+                ]);
+                setFavorites(favoritesData || []);
+                setPaymentMethods(paymentMethodsData || []);
+                setLiveChatMessages(chatHistory || []);
+            } catch (e) {
+                console.warn('Optional data load failed:', e);
+                setFavorites([]);
+                setPaymentMethods([]);
+                setLiveChatMessages([]);
+            }
+
+            // Default messages for support chat
             setMessages([
-                { id: 1, type: 'received', sender: 'SIFIXA Support', message: 'Welcome to SIFIXA! Your account has been created.', date: '2025-12-01 09:00 AM' },
-                { id: 2, type: 'sent', sender: user.name, message: 'Hi, I wanted to check on my booking status.', date: '2025-12-05 02:30 PM' },
-                { id: 3, type: 'received', sender: 'SIFIXA Support', message: 'Your device repair is in progress. Expected completion tomorrow.', date: '2025-12-05 03:15 PM' },
+                { id: 1, type: 'received', sender: 'SIFIXA Support', message: 'Welcome to SIFIXA! How can we help you today?', date: new Date().toLocaleString() }
             ]);
         } catch (error) {
             console.error('Failed to load customer data:', error);
@@ -207,65 +252,81 @@ const CustomerProfile = () => {
 
     // Handlers
     const handleMarkNotificationRead = async (id) => {
-        await mockApi.markNotificationRead(id);
-        setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+        try {
+            await customerPortalApi.notifications.markAsRead(id);
+            setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+        } catch (error) {
+            console.error('Failed to mark notification read:', error);
+        }
     };
 
     const handleMarkAllRead = async () => {
-        await mockApi.markAllNotificationsRead(customerId);
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        try {
+            await customerPortalApi.notifications.markAllAsRead(customerId);
+            setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        } catch (error) {
+            console.error('Failed to mark all notifications read:', error);
+        }
     };
 
     const handleReschedule = async (newDate, newTime) => {
         if (!selectedBooking) return;
         try {
-            await mockApi.rescheduleBooking(selectedBooking.id, newDate, newTime);
+            await api.bookings.update(selectedBooking.id, {
+                date: newDate,
+                time_slot: newTime,
+                notes: `Rescheduled by customer on ${new Date().toLocaleDateString()}`
+            });
             setShowRescheduleModal(false);
             setSelectedBooking(null);
             loadAllData();
         } catch (error) {
-            alert(error.message);
+            alert(error.message || 'Failed to reschedule booking');
         }
     };
 
     const handleCancelBooking = async (bookingId) => {
         if (!window.confirm('Are you sure you want to cancel this booking?')) return;
         try {
-            await mockApi.cancelBookingByCustomer(bookingId);
+            await api.bookings.void(bookingId, 'Cancelled by customer');
             loadAllData();
         } catch (error) {
-            alert(error.message);
+            alert(error.message || 'Failed to cancel booking');
         }
     };
 
     const handleSaveDevice = async (deviceData) => {
         try {
             if (editingDevice) {
-                await mockApi.updateCustomerDevice(editingDevice.id, deviceData);
+                await customerPortalApi.devices.update(editingDevice.id, deviceData);
             } else {
-                await mockApi.addCustomerDevice(customerId, deviceData);
+                await customerPortalApi.devices.create(customerId, deviceData);
             }
             setShowDeviceModal(false);
             setEditingDevice(null);
             loadAllData();
         } catch (error) {
-            alert(error.message);
+            alert(error.message || 'Failed to save device');
         }
     };
 
     const handleDeleteDevice = async (deviceId) => {
         if (!window.confirm('Delete this device?')) return;
-        await mockApi.deleteCustomerDevice(deviceId);
-        loadAllData();
+        try {
+            await customerPortalApi.devices.delete(deviceId);
+            loadAllData();
+        } catch (error) {
+            alert(error.message || 'Failed to delete device');
+        }
     };
 
     const handleRedeemReward = async (rewardId) => {
         try {
-            const result = await mockApi.redeemLoyaltyPoints(customerId, rewardId);
+            const result = await customerPortalApi.loyalty.redeemReward(customerId, rewardId);
             alert(`Successfully redeemed: ${result.reward.name}! Remaining points: ${result.remainingPoints}`);
             loadAllData();
         } catch (error) {
-            alert(error.message);
+            alert(error.message || 'Failed to redeem reward');
         }
     };
 
@@ -294,24 +355,24 @@ const CustomerProfile = () => {
 
     const handleSendReferralInvite = async (email, name) => {
         try {
-            await mockApi.sendReferralInvite(customerId, email, name);
+            await customerPortalApi.referrals.sendInvite(customerId, email, name);
             setShowReferralInviteModal(false);
             loadAllData();
             alert('Invitation sent successfully!');
         } catch (error) {
-            alert(error.message);
+            alert(error.message || 'Failed to send invitation');
         }
     };
 
     const handleClaimWarranty = async (issueDescription) => {
         try {
-            await mockApi.claimWarranty(selectedWarranty.id, issueDescription);
+            await customerPortalApi.warranties.claimWarranty(selectedWarranty.id, issueDescription);
             setShowWarrantyClaimModal(false);
             setSelectedWarranty(null);
             loadAllData();
             alert('Warranty claim submitted successfully!');
         } catch (error) {
-            alert(error.message);
+            alert(error.message || 'Failed to submit warranty claim');
         }
     };
 
@@ -338,22 +399,29 @@ const CustomerProfile = () => {
 
     const handleUpdateSettings = async (newSettings) => {
         try {
-            await mockApi.updateCustomerSettings(customerId, newSettings);
-            setCustomerSettings(newSettings);
+            await customerPortalApi.settings.update(customerId, newSettings);
+            setCustomerSettings(prev => ({ ...prev, ...newSettings }));
         } catch (error) {
-            alert(error.message);
+            alert(error.message || 'Failed to update settings');
         }
     };
 
     const handleSubmitReview = async (rating, title, comment, wouldRecommend) => {
         try {
-            await mockApi.submitReview(customerId, selectedBookingForReview.id, rating, title, comment, wouldRecommend);
+            await customerPortalApi.reviews.create({
+                customer_id: customerId,
+                booking_id: selectedBookingForReview.id,
+                rating,
+                title,
+                comment,
+                would_recommend: wouldRecommend
+            });
             setShowReviewModal(false);
             setSelectedBookingForReview(null);
             loadAllData();
             alert('Thank you for your review!');
         } catch (error) {
-            alert(error.message);
+            alert(error.message || 'Failed to submit review');
         }
     };
 
@@ -685,7 +753,21 @@ const CustomerProfile = () => {
             {/* Main Content */}
             <main className="profile-main">
                 {loading ? (
-                    <div className="loading-state"><RefreshCw size={24} className="spin" /> Loading your profile...</div>
+                    <div className="loading-skeleton-container">
+                        {activeTab === 'overview' && <SkeletonOverview />}
+                        {activeTab === 'notifications' && <SkeletonNotifications count={5} />}
+                        {activeTab === 'devices' && <SkeletonDeviceGrid count={4} />}
+                        {['bookings', 'warranties', 'invoices', 'reviews'].includes(activeTab) && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                <SkeletonCard showActions />
+                                <SkeletonCard showActions />
+                                <SkeletonCard />
+                            </div>
+                        )}
+                        {['profile', 'loyalty', 'settings'].includes(activeTab) && (
+                            <div className="loading-state"><RefreshCw size={24} className="spin" /> Loading...</div>
+                        )}
+                    </div>
                 ) : (
                     <>
                         {/* OVERVIEW TAB */}
