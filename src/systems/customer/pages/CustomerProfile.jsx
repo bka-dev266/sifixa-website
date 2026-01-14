@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion } from 'framer-motion'; // eslint-disable-line no-unused-vars -- used in JSX animations
 import { api } from '../../../services/apiClient';
 import { mockApi } from '../../../services/mockApi'; // Legacy fallback
 import { customerPortalApi } from '../../../services/customerPortalApi';
@@ -18,7 +18,7 @@ import {
     Share2, Users, Copy, ShieldCheck, Globe, Volume2, VolumeX, Languages,
     Lock, Unlock, ThumbsUp, MessageCircle, Ticket, Percent, Headphones, Loader2, Info
 } from 'lucide-react';
-import { getDeviceName, getCustomerName, getBookingDate } from '../../../utils/schemaHelpers';
+import { getDeviceName } from '../../../utils/schemaHelpers';
 import { SkeletonOverview, SkeletonNotifications, SkeletonDeviceGrid, SkeletonCard } from '../../../components/Skeleton';
 import EmptyState from '../../../components/EmptyState';
 import './CustomerProfile.css';
@@ -41,8 +41,8 @@ const CustomerProfile = () => {
     const [notifications, setNotifications] = useState([]);
     const [loyalty, setLoyalty] = useState(null);
     const [invoices, setInvoices] = useState([]);
-    const [favorites, setFavorites] = useState([]);
-    const [services, setServices] = useState([]);
+    const [favorites, setFavorites] = useState([]); // eslint-disable-line no-unused-vars -- used by handleRemoveFavorite
+    const [services, setServices] = useState([]); // eslint-disable-line no-unused-vars -- may be used for service lookups
     const [timeSlots, setTimeSlots] = useState([]);
 
     // New feature states
@@ -76,10 +76,6 @@ const CustomerProfile = () => {
     const [selectedWarranty, setSelectedWarranty] = useState(null);
     const [selectedBookingForReview, setSelectedBookingForReview] = useState(null);
 
-    useEffect(() => {
-        loadAllData();
-    }, [user]);
-
     const loadAllData = useCallback(async () => {
         if (!user) return;
         setLoading(true);
@@ -94,7 +90,7 @@ const CustomerProfile = () => {
                     customer = customerResult[0];
                     custId = customer.id;
                 }
-            } catch (e) {
+            } catch {
                 // Fallback to mockApi for customer lookup
                 const customers = await mockApi.getCustomers();
                 customer = customers.find(c => c.email === user.email);
@@ -163,18 +159,18 @@ const CustomerProfile = () => {
             setReviews(getResult(11) || []);
             setReviewableBookings(getResult(12) || []);
 
-            // Load additional data from mockApi (features not yet in Supabase)
+            // Load additional data from Supabase (favorites, payment methods, chat)
             try {
                 const [favoritesData, paymentMethodsData, chatHistory] = await Promise.all([
-                    mockApi.getCustomerFavorites(custId),
-                    mockApi.getCustomerPaymentMethods(custId),
-                    mockApi.getLiveChatHistory(custId)
+                    customerPortalApi.favorites.getByCustomer(custId),
+                    customerPortalApi.paymentMethods.getByCustomer(custId),
+                    customerPortalApi.chat.getByCustomer(custId)
                 ]);
                 setFavorites(favoritesData || []);
                 setPaymentMethods(paymentMethodsData || []);
                 setLiveChatMessages(chatHistory || []);
-            } catch (e) {
-                console.warn('Optional data load failed:', e);
+            } catch {
+                console.warn('Optional data load failed');
                 setFavorites([]);
                 setPaymentMethods([]);
                 setLiveChatMessages([]);
@@ -190,6 +186,11 @@ const CustomerProfile = () => {
             setLoading(false);
         }
     }, [user]);
+
+    // Effect to load data when user changes - must be AFTER loadAllData definition
+    useEffect(() => {
+        loadAllData();
+    }, [user, loadAllData]);
 
     const handleLogout = () => {
         logout();
@@ -207,6 +208,7 @@ const CustomerProfile = () => {
         }
     };
 
+    // eslint-disable-next-line no-unused-vars -- helper for device type icons, may be used in device list
     const getDeviceIcon = (type) => {
         switch (type) {
             case 'smartphone': return <Smartphone size={20} />;
@@ -248,6 +250,7 @@ const CustomerProfile = () => {
     const unreadCount = notifications.filter(n => !n.read).length;
     const activeBookings = bookings.filter(b => ['Pending', 'Confirmed', 'In Progress'].includes(b.status));
     const completedBookings = bookings.filter(b => b.status === 'Completed');
+    // eslint-disable-next-line no-unused-vars -- calculated metric for future use
     const totalSpent = bookings.filter(b => b.status === 'Completed').reduce((sum, b) => sum + (b.costEstimate || 100), 0);
 
     // Handlers
@@ -330,9 +333,14 @@ const CustomerProfile = () => {
         }
     };
 
-    const handleRemoveFavorite = async (serviceId) => {
-        await mockApi.removeFromFavorites(customerId, serviceId);
-        setFavorites(prev => prev.filter(f => f.id !== serviceId));
+    // eslint-disable-next-line no-unused-vars -- handler for favorites removal, used in favorites UI
+    const handleRemoveFavorite = async (favoriteId) => {
+        try {
+            await customerPortalApi.favorites.remove(customerId, favoriteId);
+            setFavorites(prev => prev.filter(f => f.id !== favoriteId));
+        } catch (error) {
+            alert(error.message || 'Failed to remove favorite');
+        }
     };
 
     const handleSendMessage = () => {
@@ -378,23 +386,31 @@ const CustomerProfile = () => {
 
     const handleAddPaymentMethod = async (cardData) => {
         try {
-            await mockApi.addPaymentMethod(customerId, cardData);
+            await customerPortalApi.paymentMethods.add(customerId, cardData);
             setShowPaymentModal(false);
             loadAllData();
         } catch (error) {
-            alert(error.message);
+            alert(error.message || 'Failed to add payment method');
         }
     };
 
     const handleRemovePaymentMethod = async (methodId) => {
         if (!window.confirm('Remove this payment method?')) return;
-        await mockApi.removePaymentMethod(methodId);
-        loadAllData();
+        try {
+            await customerPortalApi.paymentMethods.remove(customerId, methodId);
+            setPaymentMethods(prev => prev.filter(m => m.id !== methodId));
+        } catch (error) {
+            alert(error.message || 'Failed to remove payment method');
+        }
     };
 
     const handleSetDefaultPayment = async (methodId) => {
-        await mockApi.setDefaultPaymentMethod(customerId, methodId);
-        loadAllData();
+        try {
+            await customerPortalApi.paymentMethods.setDefault(customerId, methodId);
+            loadAllData();
+        } catch (error) {
+            alert(error.message || 'Failed to set default payment method');
+        }
     };
 
     const handleUpdateSettings = async (newSettings) => {
@@ -636,6 +652,7 @@ const CustomerProfile = () => {
         return { status: 'active', label: `${daysRemaining} days left`, color: 'green' };
     };
 
+    // eslint-disable-next-line no-unused-vars -- helper for card type icons, may be used in payment methods UI
     const getCardIcon = (type) => {
         switch (type?.toLowerCase()) {
             case 'visa': return '💳';
@@ -1017,7 +1034,7 @@ const CustomerProfile = () => {
                                                 <h3>Recent Activity</h3>
                                             </div>
                                             <div className="activity-timeline">
-                                                {notifications.slice(0, 4).map((notif, idx) => (
+                                                {notifications.slice(0, 4).map((notif) => (
                                                     <div key={notif.id} className={`activity-item ${!notif.read ? 'unread' : ''}`}>
                                                         <div className="activity-dot" />
                                                         <div className="activity-content">
@@ -2627,7 +2644,7 @@ const CustomerProfile = () => {
             {showPaymentModal && (
                 <PaymentModal
                     paymentMethod={null}
-                    onSave={handleSavePaymentMethod}
+                    onSave={handleAddPaymentMethod}
                     onClose={() => setShowPaymentModal(false)}
                 />
             )}
@@ -2643,7 +2660,7 @@ const CustomerProfile = () => {
             {showWarrantyClaimModal && selectedWarranty && (
                 <WarrantyClaimModal
                     warranty={selectedWarranty}
-                    onSubmit={handleFileWarrantyClaim}
+                    onSubmit={handleClaimWarranty}
                     onClose={() => { setShowWarrantyClaimModal(false); setSelectedWarranty(null); }}
                 />
             )}

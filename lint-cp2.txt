@@ -1,0 +1,6 @@
+﻿
+C:\Users\slema\.gemini\antigravity\scratch\mobile-repair-shop\src\systems\customer\pages\CustomerProfile.jsx
+  81:8  warning  React Hook useEffect has a missing dependency: 'loadAllData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+Γ£û 1 problem (0 errors, 1 warning)
+

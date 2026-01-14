@@ -55,21 +55,21 @@ const Booking = () => {
         confirmPassword: ''
     });
 
-    const { user, signup } = useAuth();
+    const { user, profile, signup } = useAuth();
     const navigate = useNavigate();
     const toast = useToast();
 
-    // Pre-fill if logged in
+    // Pre-fill contact info if logged in (use profile data)
     useEffect(() => {
-        if (user) {
+        if (user && profile) {
             setFormData(prev => ({
                 ...prev,
-                name: user.name || '',
-                email: user.email || '',
-                phone: user.phone || ''
+                name: profile.full_name || profile.username || '',
+                email: user.email || profile.email || '',
+                phone: profile.phone || ''
             }));
         }
-    }, [user]);
+    }, [user, profile]);
 
     // Load services when device type selected
     const handleDeviceTypeSelect = async (deviceType) => {
@@ -368,8 +368,8 @@ const Booking = () => {
                                 </div>
                             </div>
 
-                            {user && (
-                                <div className="logged-notice"><CheckCircle size={16} /> Logged in as <strong>{user.name || user.username}</strong></div>
+                            {user && profile && (
+                                <div className="logged-notice"><CheckCircle size={16} /> Logged in as <strong>{profile.full_name || profile.username || user.email}</strong></div>
                             )}
 
                             <div className="section-group">

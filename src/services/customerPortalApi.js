@@ -395,6 +395,164 @@ export const referralsApi = {
     }
 };
 
+// ==================== FAVORITES API ====================
+export const favoritesApi = {
+    // Get customer favorites
+    async getByCustomer(customerId) {
+        const { data, error } = await supabase
+            .from('customer_favorites')
+            .select('*')
+            .eq('customer_id', customerId)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching favorites:', error);
+            return [];
+        }
+        return data || [];
+    },
+
+    // Add a favorite
+    async add(customerId, serviceData) {
+        const { data, error } = await supabase
+            .from('customer_favorites')
+            .insert([{ customer_id: customerId, ...serviceData }])
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data;
+    },
+
+    // Remove a favorite
+    async remove(customerId, favoriteId) {
+        const { error } = await supabase
+            .from('customer_favorites')
+            .delete()
+            .eq('id', favoriteId)
+            .eq('customer_id', customerId);
+
+        if (error) throw new Error(error.message);
+        return true;
+    }
+};
+
+// ==================== PAYMENT METHODS API ====================
+export const paymentMethodsApi = {
+    // Get customer payment methods
+    async getByCustomer(customerId) {
+        const { data, error } = await supabase
+            .from('customer_payment_methods')
+            .select('*')
+            .eq('customer_id', customerId)
+            .order('is_default', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching payment methods:', error);
+            return [];
+        }
+        return data || [];
+    },
+
+    // Add a payment method
+    async add(customerId, cardData) {
+        // If setting as default, unset other defaults first
+        if (cardData.is_default) {
+            await supabase
+                .from('customer_payment_methods')
+                .update({ is_default: false })
+                .eq('customer_id', customerId);
+        }
+
+        const { data, error } = await supabase
+            .from('customer_payment_methods')
+            .insert([{ customer_id: customerId, ...cardData }])
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data;
+    },
+
+    // Remove a payment method
+    async remove(customerId, methodId) {
+        const { error } = await supabase
+            .from('customer_payment_methods')
+            .delete()
+            .eq('id', methodId)
+            .eq('customer_id', customerId);
+
+        if (error) throw new Error(error.message);
+        return true;
+    },
+
+    // Set a payment method as default
+    async setDefault(customerId, methodId) {
+        // Unset all defaults first
+        await supabase
+            .from('customer_payment_methods')
+            .update({ is_default: false })
+            .eq('customer_id', customerId);
+
+        // Set the new default
+        const { error } = await supabase
+            .from('customer_payment_methods')
+            .update({ is_default: true })
+            .eq('id', methodId);
+
+        if (error) throw new Error(error.message);
+        return true;
+    }
+};
+
+// ==================== CHAT HISTORY API ====================
+export const chatHistoryApi = {
+    // Get customer chat history
+    async getByCustomer(customerId, limit = 50) {
+        const { data, error } = await supabase
+            .from('customer_chat_history')
+            .select('*')
+            .eq('customer_id', customerId)
+            .order('created_at', { ascending: true })
+            .limit(limit);
+
+        if (error) {
+            console.error('Error fetching chat history:', error);
+            return [];
+        }
+        return data || [];
+    },
+
+    // Send a chat message
+    async sendMessage(customerId, message, senderType = 'customer', attachmentUrl = null) {
+        const { data, error } = await supabase
+            .from('customer_chat_history')
+            .insert([{
+                customer_id: customerId,
+                message,
+                sender_type: senderType,
+                attachment_url: attachmentUrl
+            }])
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data;
+    },
+
+    // Mark messages as read
+    async markAsRead(customerId) {
+        const { error } = await supabase
+            .from('customer_chat_history')
+            .update({ read: true })
+            .eq('customer_id', customerId)
+            .eq('read', false);
+
+        if (error) throw new Error(error.message);
+        return true;
+    }
+};
+
 // ==================== CUSTOMER DEVICES API ====================
 // Uses existing devices table
 export const customerDevicesApi = {
@@ -462,7 +620,10 @@ export const customerPortalApi = {
     reviews: reviewsApi,
     settings: settingsApi,
     referrals: referralsApi,
-    devices: customerDevicesApi
+    devices: customerDevicesApi,
+    favorites: favoritesApi,
+    paymentMethods: paymentMethodsApi,
+    chat: chatHistoryApi
 };
 
 export default customerPortalApi;

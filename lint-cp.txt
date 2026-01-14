@@ -1,0 +1,15 @@
+﻿
+C:\Users\slema\.gemini\antigravity\scratch\mobile-repair-shop\src\systems\customer\pages\CustomerProfile.jsx
+    4:10  error    'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                   no-unused-vars
+   21:25  error    'getCustomerName' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                          no-unused-vars
+   21:42  error    'getBookingDate' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                           no-unused-vars
+   44:12  error    'favorites' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                       no-unused-vars
+   45:12  error    'services' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                        no-unused-vars
+   81:8   warning  React Hook useEffect has a missing dependency: 'loadAllData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  210:11  error    'getDeviceIcon' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                   no-unused-vars
+  251:11  error    'totalSpent' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                      no-unused-vars
+  333:11  error    'handleRemoveFavorite' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u            no-unused-vars
+  651:11  error    'getCardIcon' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                     no-unused-vars
+
+Γ£û 10 problems (9 errors, 1 warning)
+
