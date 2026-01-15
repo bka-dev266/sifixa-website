@@ -22,38 +22,34 @@ export const clearLandingCache = () => {
 };
 
 /**
- * Fetch with retry logic and timeout for reliability
+ * Fetch with retry logic for reliability (no timeout - let Supabase handle it)
  * @param {Function} queryFn - async function that returns { data, error }
  * @param {number} retries - number of retries (default 2)
- * @param {number} timeoutMs - timeout in milliseconds (default 5000)
  * @returns {Promise<any>} - resolved data or null
  */
-const fetchWithRetry = async (queryFn, retries = 2, timeoutMs = 5000) => {
+const fetchWithRetry = async (queryFn, retries = 2) => {
     for (let i = 0; i <= retries; i++) {
         try {
-            // Create a timeout promise
-            const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error('Query timeout')), timeoutMs);
-            });
-
-            // Race between the query and timeout
-            const result = await Promise.race([
-                queryFn(),
-                timeoutPromise
-            ]);
-
-            const { data, error } = result;
+            const { data, error } = await queryFn();
             if (error) {
-                console.error(`Supabase query error (attempt ${i + 1}):`, error.message);
-                if (i === retries) return null;
-                await new Promise(r => setTimeout(r, 500 * (i + 1))); // Exponential backoff
-                continue;
+                // Only log on final retry to reduce noise
+                if (i === retries) {
+                    console.warn(`Supabase query failed after ${retries + 1} attempts:`, error.message);
+                }
+                if (i < retries) {
+                    await new Promise(r => setTimeout(r, 500 * (i + 1))); // Exponential backoff
+                    continue;
+                }
+                return null;
             }
             return data;
         } catch (e) {
-            console.error(`Fetch error (attempt ${i + 1}):`, e.message);
-            if (i === retries) return null;
-            await new Promise(r => setTimeout(r, 500 * (i + 1)));
+            if (i === retries) {
+                console.warn(`Fetch failed after ${retries + 1} attempts:`, e.message);
+            }
+            if (i < retries) {
+                await new Promise(r => setTimeout(r, 500 * (i + 1)));
+            }
         }
     }
     return null;

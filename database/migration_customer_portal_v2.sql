@@ -1,111 +1,93 @@
--- ====================================================
--- SIFIXA Customer Portal Database Migration V2
--- Additional tables for customer portal features
--- Run this in Supabase SQL Editor AFTER migration_customer_portal.sql
--- ====================================================
+-- ============================================
+-- SIFIXA Customer Portal V2 Tables
+-- Run this in Supabase SQL Editor to create missing tables
+-- ============================================
 
--- ============== CUSTOMER FAVORITES ==============
-CREATE TABLE IF NOT EXISTS customer_favorites (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
-    service_id UUID, -- References repair_services if exists
-    service_name VARCHAR(255) NOT NULL,
-    service_type VARCHAR(50),
+-- Customer Loyalty Table
+CREATE TABLE IF NOT EXISTS customer_loyalty (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    customer_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    points INTEGER DEFAULT 0,
+    tier VARCHAR(20) DEFAULT 'Bronze' CHECK (tier IN ('Bronze', 'Silver', 'Gold', 'Platinum')),
+    lifetime_points INTEGER DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(customer_id, service_name)
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(customer_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_favorites_customer ON customer_favorites(customer_id);
-
--- RLS Policies
-ALTER TABLE customer_favorites ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Customers can manage own favorites" ON customer_favorites;
-CREATE POLICY "Customers can manage own favorites" ON customer_favorites
-    FOR ALL USING (customer_id = auth.uid() OR auth.jwt() ->> 'role' IN ('admin', 'staff'));
-
-
--- ============== CUSTOMER PAYMENT METHODS ==============
-CREATE TABLE IF NOT EXISTS customer_payment_methods (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
-    card_type VARCHAR(20) NOT NULL, -- visa, mastercard, amex, discover
-    last_four VARCHAR(4) NOT NULL,
-    expiry_month INTEGER NOT NULL CHECK (expiry_month >= 1 AND expiry_month <= 12),
-    expiry_year INTEGER NOT NULL,
-    cardholder_name VARCHAR(255),
-    is_default BOOLEAN DEFAULT false,
-    billing_zip VARCHAR(20),
+-- Customer Settings Table
+CREATE TABLE IF NOT EXISTS customer_settings (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    customer_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    email_notifications BOOLEAN DEFAULT true,
+    sms_notifications BOOLEAN DEFAULT true,
+    push_notifications BOOLEAN DEFAULT true,
+    marketing_emails BOOLEAN DEFAULT false,
+    language VARCHAR(10) DEFAULT 'en',
+    timezone VARCHAR(50) DEFAULT 'America/New_York',
+    two_factor_enabled BOOLEAN DEFAULT false,
+    reminders JSONB DEFAULT '{"appointmentReminder": true, "repairUpdates": true, "pickupReminder": true}'::jsonb,
+    privacy JSONB DEFAULT '{"shareDataForAnalytics": false, "allowMarketingCalls": false}'::jsonb,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(customer_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_payment_methods_customer ON customer_payment_methods(customer_id);
-
--- RLS Policies
-ALTER TABLE customer_payment_methods ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Customers can manage own payment methods" ON customer_payment_methods;
-CREATE POLICY "Customers can manage own payment methods" ON customer_payment_methods
-    FOR ALL USING (customer_id = auth.uid() OR auth.jwt() ->> 'role' IN ('admin', 'staff'));
-
-
--- ============== CUSTOMER CHAT HISTORY ==============
-CREATE TABLE IF NOT EXISTS customer_chat_history (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
-    message TEXT NOT NULL,
-    sender_type VARCHAR(20) NOT NULL DEFAULT 'customer', -- customer, agent, system
-    sender_name VARCHAR(255),
-    agent_id UUID REFERENCES profiles(id),
-    attachment_url TEXT,
-    read BOOLEAN DEFAULT false,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+-- Customer Referrals Table
+CREATE TABLE IF NOT EXISTS customer_referrals (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    referrer_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    referred_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    referral_code VARCHAR(20) NOT NULL,
+    referred_email VARCHAR(255),
+    referred_name VARCHAR(100),
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'registered', 'completed', 'expired')),
+    reward_points INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    completed_at TIMESTAMPTZ
 );
 
-CREATE INDEX IF NOT EXISTS idx_chat_customer ON customer_chat_history(customer_id);
-CREATE INDEX IF NOT EXISTS idx_chat_created ON customer_chat_history(created_at DESC);
+-- Enable RLS
+ALTER TABLE customer_loyalty ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customer_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customer_referrals ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies
-ALTER TABLE customer_chat_history ENABLE ROW LEVEL SECURITY;
+-- RLS Policies for customer_loyalty
+DROP POLICY IF EXISTS "Users can view own loyalty" ON customer_loyalty;
+CREATE POLICY "Users can view own loyalty" ON customer_loyalty
+    FOR SELECT USING (auth.uid() = customer_id);
 
-DROP POLICY IF EXISTS "Customers can view own chat history" ON customer_chat_history;
-CREATE POLICY "Customers can view own chat history" ON customer_chat_history
-    FOR SELECT USING (customer_id = auth.uid() OR auth.jwt() ->> 'role' IN ('admin', 'staff'));
+DROP POLICY IF EXISTS "Users can update own loyalty" ON customer_loyalty;
+CREATE POLICY "Users can update own loyalty" ON customer_loyalty
+    FOR UPDATE USING (auth.uid() = customer_id);
 
-DROP POLICY IF EXISTS "Customers can send messages" ON customer_chat_history;
-CREATE POLICY "Customers can send messages" ON customer_chat_history
-    FOR INSERT WITH CHECK (customer_id = auth.uid() OR auth.jwt() ->> 'role' IN ('admin', 'staff'));
+-- RLS Policies for customer_settings
+DROP POLICY IF EXISTS "Users can view own settings" ON customer_settings;
+CREATE POLICY "Users can view own settings" ON customer_settings
+    FOR SELECT USING (auth.uid() = customer_id);
 
-DROP POLICY IF EXISTS "Staff can update chat" ON customer_chat_history;
-CREATE POLICY "Staff can update chat" ON customer_chat_history
-    FOR UPDATE USING (auth.jwt() ->> 'role' IN ('admin', 'staff'));
+DROP POLICY IF EXISTS "Users can update own settings" ON customer_settings;
+CREATE POLICY "Users can update own settings" ON customer_settings
+    FOR UPDATE USING (auth.uid() = customer_id);
 
+DROP POLICY IF EXISTS "Users can insert own settings" ON customer_settings;
+CREATE POLICY "Users can insert own settings" ON customer_settings
+    FOR INSERT WITH CHECK (auth.uid() = customer_id);
 
--- ============== TRIGGER: Update payment_methods timestamp ==============
-CREATE OR REPLACE FUNCTION update_payment_method_timestamp()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+-- RLS Policies for customer_referrals
+DROP POLICY IF EXISTS "Users can view own referrals" ON customer_referrals;
+CREATE POLICY "Users can view own referrals" ON customer_referrals
+    FOR SELECT USING (auth.uid() = referrer_id);
 
-DROP TRIGGER IF EXISTS trigger_update_payment_method_timestamp ON customer_payment_methods;
-CREATE TRIGGER trigger_update_payment_method_timestamp
-    BEFORE UPDATE ON customer_payment_methods
-    FOR EACH ROW
-    EXECUTE FUNCTION update_payment_method_timestamp();
+DROP POLICY IF EXISTS "Users can create referrals" ON customer_referrals;
+CREATE POLICY "Users can create referrals" ON customer_referrals
+    FOR INSERT WITH CHECK (auth.uid() = referrer_id);
 
+-- Create indexes for performance
+CREATE INDEX IF NOT EXISTS idx_customer_loyalty_customer ON customer_loyalty(customer_id);
+CREATE INDEX IF NOT EXISTS idx_customer_settings_customer ON customer_settings(customer_id);
+CREATE INDEX IF NOT EXISTS idx_customer_referrals_referrer ON customer_referrals(referrer_id);
+CREATE INDEX IF NOT EXISTS idx_customer_referrals_code ON customer_referrals(referral_code);
 
--- ============== GRANT PERMISSIONS ==============
-GRANT SELECT, INSERT, UPDATE, DELETE ON customer_favorites TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON customer_payment_methods TO authenticated;
-GRANT SELECT, INSERT, UPDATE ON customer_chat_history TO authenticated;
-
-
--- ============== SEED DATA: Sample favorites (optional) ==============
--- INSERT INTO customer_favorites (customer_id, service_name, service_type) VALUES
---     ('your-customer-uuid', 'Screen Replacement', 'repair'),
---     ('your-customer-uuid', 'Battery Replacement', 'repair')
--- ON CONFLICT DO NOTHING;
+-- Success message
+SELECT 'Customer Portal V2 tables created successfully!' as message;
