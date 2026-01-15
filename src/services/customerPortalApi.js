@@ -70,12 +70,9 @@ export const loyaltyApi = {
             .single();
 
         if (error) {
-            // Return default loyalty if not found
-            if (error.code === 'PGRST116') {
-                return { points: 0, tier: 'Bronze', lifetime_points: 0 };
-            }
-            console.error('Error fetching loyalty:', error);
-            return null;
+            // Return default loyalty if not found or table doesn't exist (406)
+            // Silently handle - these tables are optional for v1
+            return { points: 0, tier: 'Bronze', lifetime_points: 0 };
         }
         return data;
     },
@@ -289,21 +286,20 @@ export const settingsApi = {
             .eq('customer_id', customerId)
             .single();
 
+        // Return defaults if not found or table doesn't exist (406)
+        // Silently handle - these tables are optional for v1
         if (error) {
-            // Return defaults if not found
-            if (error.code === 'PGRST116') {
-                return {
-                    email_notifications: true,
-                    sms_notifications: true,
-                    push_notifications: true,
-                    marketing_emails: false,
-                    language: 'en',
-                    timezone: 'America/New_York',
-                    two_factor_enabled: false
-                };
-            }
-            console.error('Error fetching settings:', error);
-            return null;
+            return {
+                email_notifications: true,
+                sms_notifications: true,
+                push_notifications: true,
+                marketing_emails: false,
+                language: 'en',
+                timezone: 'America/New_York',
+                two_factor_enabled: false,
+                reminders: { appointmentReminder: true, repairUpdates: true, pickupReminder: true },
+                privacy: { shareDataForAnalytics: false, allowMarketingCalls: false }
+            };
         }
         return data;
     },
@@ -329,30 +325,40 @@ export const settingsApi = {
 export const referralsApi = {
     // Get or generate referral code for customer
     async getOrCreateCode(customerId) {
-        // Check for existing referral record
-        const { data: existing } = await supabase
-            .from('customer_referrals')
-            .select('referral_code')
-            .eq('referrer_id', customerId)
-            .limit(1);
+        try {
+            // Check for existing referral record
+            const { data: existing, error } = await supabase
+                .from('customer_referrals')
+                .select('referral_code')
+                .eq('referrer_id', customerId)
+                .limit(1);
 
-        if (existing && existing.length > 0) {
-            return existing[0].referral_code;
+            // If table doesn't exist (406/409), generate a local code
+            if (error) {
+                return 'SFX-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+            }
+
+            if (existing && existing.length > 0) {
+                return existing[0].referral_code;
+            }
+
+            // Generate new code
+            const code = 'SFX-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+
+            // Try to create placeholder referral record (may fail if table doesn't exist)
+            await supabase
+                .from('customer_referrals')
+                .insert([{
+                    referrer_id: customerId,
+                    referral_code: code,
+                    status: 'pending'
+                }]);
+
+            return code;
+        } catch {
+            // Fallback if any error
+            return 'SFX-' + Math.random().toString(36).substring(2, 8).toUpperCase();
         }
-
-        // Generate new code
-        const code = 'SFX-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-
-        // Create placeholder referral record to store the code
-        await supabase
-            .from('customer_referrals')
-            .insert([{
-                referrer_id: customerId,
-                referral_code: code,
-                status: 'pending'
-            }]);
-
-        return code;
     },
 
     // Get all referrals for a customer
@@ -555,8 +561,26 @@ export const chatHistoryApi = {
 
 // ==================== CUSTOMER DEVICES API ====================
 // Uses existing devices table
+
+// Helper to map frontend device types to database device types
+const mapDeviceType = (frontendType) => {
+    const typeMap = {
+        'smartphone': 'phone',
+        'smartwatch': 'watch',
+        'phone': 'phone',
+        'tablet': 'tablet',
+        'laptop': 'laptop',
+        'watch': 'watch',
+        'desktop': 'desktop',
+        'console': 'console',
+        'other': 'other'
+    };
+    return typeMap[frontendType] || 'phone';
+};
+
 export const customerDevicesApi = {
     // Get devices for a customer
+    // Maps database column names back to frontend field names
     async getByCustomer(customerId) {
         const { data, error } = await supabase
             .from('devices')
@@ -568,17 +592,40 @@ export const customerDevicesApi = {
             console.error('Error fetching devices:', error);
             return [];
         }
-        return data || [];
+
+        // Map database columns to frontend field names
+        return (data || []).map(device => ({
+            id: device.id,
+            customer_id: device.customer_id,
+            type: device.device_type === 'phone' ? 'smartphone' : device.device_type === 'watch' ? 'smartwatch' : device.device_type,
+            brand: device.brand,
+            model: device.model,
+            name: device.model, // Use model as name for display
+            color: device.color,
+            serialNumber: device.serial_number,
+            notes: device.condition_notes,
+            addedDate: device.created_at,
+            created_at: device.created_at
+        }));
     },
 
     // Add a new device
+    // Maps frontend field names to database column names
     async create(customerId, deviceData) {
+        // Map frontend fields to database columns
+        const dbData = {
+            customer_id: customerId,
+            device_type: mapDeviceType(deviceData.type), // frontend: type -> db: device_type with value mapping
+            brand: deviceData.brand,
+            model: deviceData.name ? `${deviceData.name} - ${deviceData.model}` : deviceData.model, // include name in model
+            color: deviceData.color,
+            serial_number: deviceData.serialNumber, // frontend: serialNumber -> db: serial_number
+            condition_notes: deviceData.notes // frontend: notes -> db: condition_notes
+        };
+
         const { data, error } = await supabase
             .from('devices')
-            .insert([{
-                customer_id: customerId,
-                ...deviceData
-            }])
+            .insert([dbData])
             .select()
             .single();
 
@@ -587,10 +634,20 @@ export const customerDevicesApi = {
     },
 
     // Update a device
+    // Maps frontend field names to database column names
     async update(deviceId, updates) {
+        // Map frontend fields to database columns
+        const dbUpdates = {};
+        if (updates.type !== undefined) dbUpdates.device_type = mapDeviceType(updates.type);
+        if (updates.brand !== undefined) dbUpdates.brand = updates.brand;
+        if (updates.model !== undefined) dbUpdates.model = updates.name ? `${updates.name} - ${updates.model}` : updates.model;
+        if (updates.color !== undefined) dbUpdates.color = updates.color;
+        if (updates.serialNumber !== undefined) dbUpdates.serial_number = updates.serialNumber;
+        if (updates.notes !== undefined) dbUpdates.condition_notes = updates.notes;
+
         const { data, error } = await supabase
             .from('devices')
-            .update(updates)
+            .update(dbUpdates)
             .eq('id', deviceId)
             .select()
             .single();

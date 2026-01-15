@@ -29,6 +29,7 @@ import EmployeeDashboard from './systems/staff/pages/EmployeeDashboard';
 import SupportDashboard from './systems/staff/pages/SupportDashboard';
 import InventoryDashboard from './systems/staff/pages/InventoryDashboard';
 import POSDashboard from './systems/staff/pages/POSDashboard';
+import './services/debug'; // Debug utilities - available as window.sifixaDebug
 import './App.css';
 
 function App() {

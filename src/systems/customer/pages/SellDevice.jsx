@@ -85,12 +85,13 @@ const SellDevice = () => {
     const canProceedStep2 = formData.condition;
     const canProceedStep3 = formData.name && formData.email && formData.phone;
 
-    const features = [
-        { icon: DollarSign, title: 'Best Prices', description: 'Competitive offers', color: 'green' },
-        { icon: Clock, title: 'Quick Process', description: 'Same-day quotes', color: 'blue' },
-        { icon: Shield, title: 'Safe & Secure', description: 'Data wiped safely', color: 'purple' },
-        { icon: Award, title: 'Instant Payment', description: 'Get paid right away', color: 'orange' },
-    ];
+    // COMMENTED OUT: Feature cards temporarily hidden
+    // const features = [
+    //     { icon: DollarSign, title: 'Best Prices', description: 'Competitive offers', color: 'green' },
+    //     { icon: Clock, title: 'Quick Process', description: 'Same-day quotes', color: 'blue' },
+    //     { icon: Shield, title: 'Safe & Secure', description: 'Data wiped safely', color: 'purple' },
+    //     { icon: Award, title: 'Instant Payment', description: 'Get paid right away', color: 'orange' },
+    // ];
 
     if (submitted) {
         return (
@@ -154,7 +155,7 @@ const SellDevice = () => {
                 </div>
             </section>
 
-            {/* Features Section */}
+            {/* Features Section - COMMENTED OUT
             <section className="sell-features-section">
                 <div className="container">
                     <div className="features-grid">
@@ -176,6 +177,7 @@ const SellDevice = () => {
                     </div>
                 </div>
             </section>
+            */}
 
             {/* Form Section */}
             <section className="sell-form-section">

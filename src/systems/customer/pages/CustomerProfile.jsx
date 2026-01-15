@@ -16,7 +16,7 @@ import {
     FileText, Heart, Award, TrendingUp, Download, Trash2, Plus,
     X, Eye, EyeOff, Save, RefreshCw, CreditCard, Receipt, Crown, Menu, Camera,
     Share2, Users, Copy, ShieldCheck, Globe, Volume2, VolumeX, Languages,
-    Lock, Unlock, ThumbsUp, MessageCircle, Ticket, Percent, Headphones, Loader2, Info
+    Lock, Unlock, ThumbsUp, MessageCircle, Ticket, Percent, Headphones, Loader2, Info, Search, HelpCircle, BookOpen
 } from 'lucide-react';
 import { getDeviceName } from '../../../utils/schemaHelpers';
 import { SkeletonOverview, SkeletonNotifications, SkeletonDeviceGrid, SkeletonCard } from '../../../components/Skeleton';
@@ -59,6 +59,9 @@ const CustomerProfile = () => {
     const [isTyping, setIsTyping] = useState(false);
     const [chatAttachment, setChatAttachment] = useState(null);
     const [showQuickReplies, setShowQuickReplies] = useState(true);
+
+    // Search state
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Modal states
     const [showDeviceModal, setShowDeviceModal] = useState(false);
@@ -150,7 +153,21 @@ const CustomerProfile = () => {
             // Customer portal data
             setDevices(getResult(3) || []);
             setNotifications(getResult(4) || []);
-            setLoyalty(getResult(5) || { points: 0, tier: 'Bronze', lifetime_points: 0 });
+            const loyaltyData = getResult(5);
+            setLoyalty(loyaltyData ? {
+                ...loyaltyData,
+                availableRewards: loyaltyData.availableRewards || [],
+                pointsHistory: loyaltyData.pointsHistory || [],
+                tierProgress: loyaltyData.tierProgress || 0,
+                lifetimePoints: loyaltyData.lifetimePoints || loyaltyData.lifetime_points || 0
+            } : {
+                points: 0,
+                tier: 'Bronze',
+                lifetimePoints: 0,
+                tierProgress: 0,
+                availableRewards: [],
+                pointsHistory: []
+            });
             setInvoices(getResult(6) || []);
             setReferrals(getResult(7) || []);
             setReferralCode(getResult(8) || `SFX-${user.id?.slice(0, 6).toUpperCase() || 'NEW'}`);
@@ -759,6 +776,9 @@ const CustomerProfile = () => {
                     <button className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => { setActiveTab('settings'); setSidebarOpen(false); }} aria-current={activeTab === 'settings' ? 'page' : undefined}>
                         <Settings size={18} aria-hidden="true" /> <span>Settings</span>
                     </button>
+                    <button className={`nav-item ${activeTab === 'help' ? 'active' : ''}`} onClick={() => { setActiveTab('help'); setSidebarOpen(false); }} aria-current={activeTab === 'help' ? 'page' : undefined}>
+                        <HelpCircle size={18} aria-hidden="true" /> <span>Help Center</span>
+                    </button>
                 </nav>
 
                 <div className="sidebar-footer">
@@ -820,6 +840,86 @@ const CustomerProfile = () => {
                                                 <span className="points-count">{loyalty.points} pts</span>
                                             </div>
                                         </motion.div>
+                                    )}
+                                </motion.div>
+
+                                {/* Global Search Bar */}
+                                <motion.div
+                                    className="portal-search-container"
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.2, duration: 0.4 }}
+                                >
+                                    <div className="portal-search-bar">
+                                        <Search size={20} className="search-icon" />
+                                        <input
+                                            type="text"
+                                            placeholder="Search bookings, invoices, devices, FAQs..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="portal-search-input"
+                                        />
+                                        {searchQuery && (
+                                            <button className="search-clear-btn" onClick={() => setSearchQuery('')}>
+                                                <X size={16} />
+                                            </button>
+                                        )}
+                                    </div>
+                                    {searchQuery && (
+                                        <div className="search-results-dropdown">
+                                            <div className="search-results-section">
+                                                <h4><Calendar size={14} /> Bookings</h4>
+                                                {bookings.filter(b =>
+                                                    b.issue?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                                    getDeviceName(b.device)?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                                    b.tracking_number?.toLowerCase().includes(searchQuery.toLowerCase())
+                                                ).slice(0, 3).map(b => (
+                                                    <button key={b.id} className="search-result-item" onClick={() => { setSearchQuery(''); setActiveTab('bookings'); }}>
+                                                        <span>{getDeviceName(b.device)} - {b.issue}</span>
+                                                        <ChevronRight size={14} />
+                                                    </button>
+                                                ))}
+                                                {bookings.filter(b =>
+                                                    b.issue?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                                    getDeviceName(b.device)?.toLowerCase().includes(searchQuery.toLowerCase())
+                                                ).length === 0 && <span className="no-results">No matching bookings</span>}
+                                            </div>
+                                            <div className="search-results-section">
+                                                <h4><Receipt size={14} /> Invoices</h4>
+                                                {invoices.filter(i =>
+                                                    i.invoice_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                                    i.description?.toLowerCase().includes(searchQuery.toLowerCase())
+                                                ).slice(0, 3).map(i => (
+                                                    <button key={i.id} className="search-result-item" onClick={() => { setSearchQuery(''); setActiveTab('invoices'); }}>
+                                                        <span>{i.invoice_number} - ${i.total}</span>
+                                                        <ChevronRight size={14} />
+                                                    </button>
+                                                ))}
+                                                {invoices.filter(i =>
+                                                    i.invoice_number?.toLowerCase().includes(searchQuery.toLowerCase())
+                                                ).length === 0 && <span className="no-results">No matching invoices</span>}
+                                            </div>
+                                            <div className="search-results-section">
+                                                <h4><Smartphone size={14} /> Devices</h4>
+                                                {devices.filter(d =>
+                                                    d.brand?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                                    d.model?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                                    d.name?.toLowerCase().includes(searchQuery.toLowerCase())
+                                                ).slice(0, 3).map(d => (
+                                                    <button key={d.id} className="search-result-item" onClick={() => { setSearchQuery(''); setActiveTab('devices'); }}>
+                                                        <span>{d.brand} {d.model}</span>
+                                                        <ChevronRight size={14} />
+                                                    </button>
+                                                ))}
+                                                {devices.filter(d =>
+                                                    d.brand?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                                    d.model?.toLowerCase().includes(searchQuery.toLowerCase())
+                                                ).length === 0 && <span className="no-results">No matching devices</span>}
+                                            </div>
+                                            <button className="view-all-results" onClick={() => setActiveTab('help')}>
+                                                <HelpCircle size={14} /> Search Help Center
+                                            </button>
+                                        </div>
                                     )}
                                 </motion.div>
 
@@ -1366,7 +1466,7 @@ const CustomerProfile = () => {
                                     <div className="rewards-section">
                                         <h3><Gift size={18} /> Available Rewards</h3>
                                         <div className="rewards-list">
-                                            {loyalty.availableRewards.map(reward => (
+                                            {loyalty.availableRewards?.length > 0 ? loyalty.availableRewards.map(reward => (
                                                 <div key={reward.id} className={`reward-card ${loyalty.points >= reward.points ? 'available' : 'locked'}`}>
                                                     <div className="reward-info">
                                                         <h4>{reward.name}</h4>
@@ -1383,14 +1483,19 @@ const CustomerProfile = () => {
                                                         </Button>
                                                     </div>
                                                 </div>
-                                            ))}
+                                            )) : (
+                                                <div className="empty-state small">
+                                                    <Gift size={24} />
+                                                    <p>No rewards available yet. Keep earning points!</p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
                                     <div className="points-history">
                                         <h3><TrendingUp size={18} /> Points History</h3>
                                         <div className="history-list">
-                                            {loyalty.pointsHistory.map(entry => (
+                                            {loyalty.pointsHistory?.length > 0 ? loyalty.pointsHistory.map(entry => (
                                                 <div key={entry.id} className={`history-item ${entry.type}`}>
                                                     <div className="history-info">
                                                         <span className="description">{entry.description}</span>
@@ -1400,7 +1505,12 @@ const CustomerProfile = () => {
                                                         {entry.points > 0 ? '+' : ''}{entry.points}
                                                     </span>
                                                 </div>
-                                            ))}
+                                            )) : (
+                                                <div className="empty-state small">
+                                                    <TrendingUp size={24} />
+                                                    <p>No points history yet</p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -2413,6 +2523,145 @@ const CustomerProfile = () => {
                                                 <ChevronRight size={20} className="chevron-icon" />
                                             </div>
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* HELP CENTER TAB */}
+                        {activeTab === 'help' && (
+                            <div className="help-center-section">
+                                <div className="section-header">
+                                    <h1><HelpCircle size={28} /> Help Center</h1>
+                                    <p>Find answers to common questions or contact our support team</p>
+                                </div>
+
+                                {/* Help Search */}
+                                <div className="help-search-container">
+                                    <div className="help-search-bar">
+                                        <Search size={20} />
+                                        <input
+                                            type="text"
+                                            placeholder="Search help articles..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Quick Help Cards */}
+                                <div className="help-quick-cards">
+                                    <motion.div
+                                        className="help-quick-card"
+                                        whileHover={{ scale: 1.02 }}
+                                        onClick={() => setLiveChatOpen(true)}
+                                    >
+                                        <div className="quick-card-icon chat">
+                                            <MessageSquare size={24} />
+                                        </div>
+                                        <h3>Live Chat</h3>
+                                        <p>Chat with our support team in real-time</p>
+                                    </motion.div>
+                                    <motion.div
+                                        className="help-quick-card"
+                                        whileHover={{ scale: 1.02 }}
+                                    >
+                                        <div className="quick-card-icon phone">
+                                            <Phone size={24} />
+                                        </div>
+                                        <h3>Call Us</h3>
+                                        <p>(555) 123-4567</p>
+                                    </motion.div>
+                                    <motion.div
+                                        className="help-quick-card"
+                                        whileHover={{ scale: 1.02 }}
+                                    >
+                                        <div className="quick-card-icon email">
+                                            <Mail size={24} />
+                                        </div>
+                                        <h3>Email Support</h3>
+                                        <p>support@sifixa.com</p>
+                                    </motion.div>
+                                </div>
+
+                                {/* FAQ Section */}
+                                <div className="help-faq-section">
+                                    <h2><BookOpen size={20} /> Frequently Asked Questions</h2>
+
+                                    <div className="faq-categories">
+                                        {[
+                                            {
+                                                category: 'Repairs',
+                                                icon: <Settings size={18} />,
+                                                faqs: [
+                                                    { q: 'How long does a typical repair take?', a: 'Most repairs are completed within 1-2 hours. Complex repairs may take up to 24-48 hours. You will receive updates via SMS/email.' },
+                                                    { q: 'What is included in the 90-day warranty?', a: 'Our warranty covers defects in parts and workmanship. If the same issue reoccurs, we will fix it for free.' },
+                                                    { q: 'Can I track my repair status?', a: 'Yes! Use the "Track Repair" feature on our website or check your dashboard here in the portal.' },
+                                                ]
+                                            },
+                                            {
+                                                category: 'Booking',
+                                                icon: <Calendar size={18} />,
+                                                faqs: [
+                                                    { q: 'How do I book an appointment?', a: 'Click "Book Repair" in the navigation or visit the booking page. Select your device, issue, and preferred time slot.' },
+                                                    { q: 'Can I reschedule my appointment?', a: 'Yes, you can reschedule from your bookings tab up to 2 hours before your appointment time.' },
+                                                    { q: 'What if I miss my appointment?', a: 'Contact us to reschedule. Repeated no-shows may result in a small rebooking fee.' },
+                                                ]
+                                            },
+                                            {
+                                                category: 'Payments',
+                                                icon: <CreditCard size={18} />,
+                                                faqs: [
+                                                    { q: 'What payment methods do you accept?', a: 'We accept all major credit cards, debit cards, PayPal, and cash payments in-store.' },
+                                                    { q: 'When do I pay for my repair?', a: 'Payment is collected after repair completion. For expensive parts, a deposit may be required.' },
+                                                    { q: 'Can I get a refund?', a: 'Refunds are available if we cannot complete the repair or if parts are defective. See our refund policy for details.' },
+                                                ]
+                                            },
+                                            {
+                                                category: 'Account',
+                                                icon: <User size={18} />,
+                                                faqs: [
+                                                    { q: 'How do I earn rewards points?', a: 'Earn 1 point for every $1 spent on repairs. Bonus points for referrals and reviews!' },
+                                                    { q: 'How do I refer a friend?', a: 'Share your referral code from the Rewards tab. When they complete a repair, you both get bonus points!' },
+                                                    { q: 'How do I update my profile?', a: 'Go to the Profile tab and click "Edit Profile" to update your information.' },
+                                                ]
+                                            }
+                                        ].map(category => (
+                                            <div key={category.category} className="faq-category">
+                                                <h3>{category.icon} {category.category}</h3>
+                                                <div className="faq-list">
+                                                    {category.faqs
+                                                        .filter(faq =>
+                                                            !searchQuery ||
+                                                            faq.q.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                                            faq.a.toLowerCase().includes(searchQuery.toLowerCase())
+                                                        )
+                                                        .map((faq, idx) => (
+                                                            <details key={idx} className="faq-item">
+                                                                <summary>
+                                                                    {faq.q}
+                                                                    <ChevronRight size={16} className="faq-chevron" />
+                                                                </summary>
+                                                                <p>{faq.a}</p>
+                                                            </details>
+                                                        ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Still Need Help */}
+                                <div className="help-contact-card">
+                                    <div className="contact-card-content">
+                                        <Headphones size={40} />
+                                        <div>
+                                            <h3>Still need help?</h3>
+                                            <p>Our support team is available Monday-Saturday, 9am-7pm</p>
+                                        </div>
+                                        <Button variant="primary" onClick={() => setLiveChatOpen(true)}>
+                                            <MessageSquare size={16} /> Start Chat
+                                        </Button>
                                     </div>
                                 </div>
                             </div>

@@ -22,15 +22,27 @@ export const clearLandingCache = () => {
 };
 
 /**
- * Fetch with retry logic for reliability
+ * Fetch with retry logic and timeout for reliability
  * @param {Function} queryFn - async function that returns { data, error }
  * @param {number} retries - number of retries (default 2)
+ * @param {number} timeoutMs - timeout in milliseconds (default 5000)
  * @returns {Promise<any>} - resolved data or null
  */
-const fetchWithRetry = async (queryFn, retries = 2) => {
+const fetchWithRetry = async (queryFn, retries = 2, timeoutMs = 5000) => {
     for (let i = 0; i <= retries; i++) {
         try {
-            const { data, error } = await queryFn();
+            // Create a timeout promise
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Query timeout')), timeoutMs);
+            });
+
+            // Race between the query and timeout
+            const result = await Promise.race([
+                queryFn(),
+                timeoutPromise
+            ]);
+
+            const { data, error } = result;
             if (error) {
                 console.error(`Supabase query error (attempt ${i + 1}):`, error.message);
                 if (i === retries) return null;
