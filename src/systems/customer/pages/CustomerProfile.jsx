@@ -63,6 +63,11 @@ const CustomerProfile = () => {
     // Search state
     const [searchQuery, setSearchQuery] = useState('');
 
+    // Support tickets state
+    const [supportTickets, setSupportTickets] = useState([]);
+    const [selectedTicket, setSelectedTicket] = useState(null);
+    const [ticketMessages, setTicketMessages] = useState([]);
+
     // Modal states
     const [showDeviceModal, setShowDeviceModal] = useState(false);
     const [showRescheduleModal, setShowRescheduleModal] = useState(false);
@@ -73,6 +78,8 @@ const CustomerProfile = () => {
     const [showReviewModal, setShowReviewModal] = useState(false);
     const [showWarrantyClaimModal, setShowWarrantyClaimModal] = useState(false);
     const [showReferralInviteModal, setShowReferralInviteModal] = useState(false);
+    const [showTicketModal, setShowTicketModal] = useState(false);
+    const [showTicketDetailModal, setShowTicketDetailModal] = useState(false);
     const [editingDevice, setEditingDevice] = useState(null);
     const [selectedBooking, setSelectedBooking] = useState(null);
     const [selectedInvoice, setSelectedInvoice] = useState(null);
@@ -176,21 +183,24 @@ const CustomerProfile = () => {
             setReviews(getResult(11) || []);
             setReviewableBookings(getResult(12) || []);
 
-            // Load additional data from Supabase (favorites, payment methods, chat)
+            // Load additional data from Supabase (favorites, payment methods, chat, support tickets)
             try {
-                const [favoritesData, paymentMethodsData, chatHistory] = await Promise.all([
+                const [favoritesData, paymentMethodsData, chatHistory, ticketsData] = await Promise.all([
                     customerPortalApi.favorites.getByCustomer(custId),
                     customerPortalApi.paymentMethods.getByCustomer(custId),
-                    customerPortalApi.chat.getByCustomer(custId)
+                    customerPortalApi.chat.getByCustomer(custId),
+                    customerPortalApi.supportTickets.getByCustomer(custId)
                 ]);
                 setFavorites(favoritesData || []);
                 setPaymentMethods(paymentMethodsData || []);
                 setLiveChatMessages(chatHistory || []);
+                setSupportTickets(ticketsData || []);
             } catch {
                 console.warn('Optional data load failed');
                 setFavorites([]);
                 setPaymentMethods([]);
                 setLiveChatMessages([]);
+                setSupportTickets([]);
             }
 
             // Default messages for support chat
@@ -775,6 +785,10 @@ const CustomerProfile = () => {
                     </button>
                     <button className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => { setActiveTab('settings'); setSidebarOpen(false); }} aria-current={activeTab === 'settings' ? 'page' : undefined}>
                         <Settings size={18} aria-hidden="true" /> <span>Settings</span>
+                    </button>
+                    <button className={`nav-item ${activeTab === 'support' ? 'active' : ''}`} onClick={() => { setActiveTab('support'); setSidebarOpen(false); }} aria-current={activeTab === 'support' ? 'page' : undefined}>
+                        <Ticket size={18} aria-hidden="true" /> <span>Support</span>
+                        {supportTickets.filter(t => t.status === 'open').length > 0 && <span className="badge alert">{supportTickets.filter(t => t.status === 'open').length}</span>}
                     </button>
                     <button className={`nav-item ${activeTab === 'help' ? 'active' : ''}`} onClick={() => { setActiveTab('help'); setSidebarOpen(false); }} aria-current={activeTab === 'help' ? 'page' : undefined}>
                         <HelpCircle size={18} aria-hidden="true" /> <span>Help Center</span>
@@ -2528,6 +2542,73 @@ const CustomerProfile = () => {
                             </div>
                         )}
 
+                        {/* SUPPORT TAB */}
+                        {activeTab === 'support' && (
+                            <div className="support-section">
+                                <div className="section-header">
+                                    <h1><Ticket size={28} /> Support Tickets</h1>
+                                    <Button variant="primary" onClick={() => setShowTicketModal(true)}>
+                                        <Plus size={16} /> Submit a Ticket
+                                    </Button>
+                                </div>
+
+                                {supportTickets.length === 0 ? (
+                                    <EmptyState
+                                        icon={<Ticket size={48} />}
+                                        title="No support tickets"
+                                        description="Have an issue? Submit a ticket and our team will help you out."
+                                        action={
+                                            <Button variant="primary" onClick={() => setShowTicketModal(true)}>
+                                                <Plus size={16} /> Submit Your First Ticket
+                                            </Button>
+                                        }
+                                    />
+                                ) : (
+                                    <div className="tickets-list">
+                                        {supportTickets.map(ticket => (
+                                            <motion.div
+                                                key={ticket.id}
+                                                className="ticket-card"
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                onClick={() => {
+                                                    setSelectedTicket(ticket);
+                                                    setShowTicketDetailModal(true);
+                                                }}
+                                            >
+                                                <div className="ticket-header">
+                                                    <div className="ticket-info">
+                                                        <h3>{ticket.subject}</h3>
+                                                        <span className="ticket-id">#{ticket.id.slice(0, 8).toUpperCase()}</span>
+                                                    </div>
+                                                    <span className={`ticket-status ${ticket.status.replace('_', '-')}`}>
+                                                        {ticket.status === 'open' && <AlertCircle size={14} />}
+                                                        {ticket.status === 'in_progress' && <Clock3 size={14} />}
+                                                        {ticket.status === 'resolved' && <CheckCircle size={14} />}
+                                                        {ticket.status === 'closed' && <XCircle size={14} />}
+                                                        {ticket.status.replace('_', ' ')}
+                                                    </span>
+                                                </div>
+                                                <p className="ticket-description">{ticket.description?.slice(0, 100)}{ticket.description?.length > 100 ? '...' : ''}</p>
+                                                <div className="ticket-footer">
+                                                    <div className="ticket-meta">
+                                                        <span className={`priority-badge ${ticket.priority}`}>
+                                                            {ticket.priority}
+                                                        </span>
+                                                        <span className="ticket-category">{ticket.category}</span>
+                                                    </div>
+                                                    <span className="ticket-date">
+                                                        <Calendar size={14} />
+                                                        {new Date(ticket.created_at).toLocaleDateString()}
+                                                    </span>
+                                                </div>
+                                            </motion.div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                         {/* HELP CENTER TAB */}
                         {activeTab === 'help' && (
                             <div className="help-center-section">
@@ -2919,6 +3000,17 @@ const CustomerProfile = () => {
                     referralCode={referralCode}
                     onSend={handleSendReferralInvite}
                     onClose={() => setShowReferralInviteModal(false)}
+                />
+            )}
+
+            {showTicketModal && (
+                <SubmitTicketModal
+                    onSubmit={async (ticketData) => {
+                        await customerPortalApi.supportTickets.create(customerId, ticketData);
+                        const tickets = await customerPortalApi.supportTickets.getByCustomer(customerId);
+                        setSupportTickets(tickets);
+                    }}
+                    onClose={() => setShowTicketModal(false)}
                 />
             )}
         </div>
@@ -3645,6 +3737,101 @@ const ReferralInviteModal = ({ referralCode, onSend, onClose }) => {
                                 <><Loader2 size={16} className="spin" /> Sending...</>
                             ) : (
                                 <><Send size={16} /> Send Invitation</>
+                            )}
+                        </Button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+// Submit Ticket Modal Component
+const SubmitTicketModal = ({ onSubmit, onClose }) => {
+    const [formData, setFormData] = useState({
+        subject: '',
+        description: '',
+        category: 'general',
+        priority: 'medium'
+    });
+    const [submitting, setSubmitting] = useState(false);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setSubmitting(true);
+        try {
+            await onSubmit(formData);
+            onClose();
+        } catch (error) {
+            console.error('Error submitting ticket:', error);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+                <div className="modal-header">
+                    <h2><Ticket size={22} /> Submit a Support Ticket</h2>
+                    <button className="close-btn" onClick={onClose}><X size={20} /></button>
+                </div>
+                <form onSubmit={handleSubmit}>
+                    <div className="form-group">
+                        <label>Subject *</label>
+                        <input
+                            type="text"
+                            value={formData.subject}
+                            onChange={e => setFormData({ ...formData, subject: e.target.value })}
+                            placeholder="Brief summary of your issue"
+                            required
+                        />
+                    </div>
+                    <div className="form-row">
+                        <div className="form-group">
+                            <label>Category</label>
+                            <select
+                                value={formData.category}
+                                onChange={e => setFormData({ ...formData, category: e.target.value })}
+                            >
+                                <option value="general">General Inquiry</option>
+                                <option value="repair">Repair Issue</option>
+                                <option value="billing">Billing Question</option>
+                                <option value="technical">Technical Support</option>
+                                <option value="feedback">Feedback</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div className="form-group">
+                            <label>Priority</label>
+                            <select
+                                value={formData.priority}
+                                onChange={e => setFormData({ ...formData, priority: e.target.value })}
+                            >
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                                <option value="urgent">Urgent</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div className="form-group">
+                        <label>Description *</label>
+                        <textarea
+                            value={formData.description}
+                            onChange={e => setFormData({ ...formData, description: e.target.value })}
+                            placeholder="Please describe your issue in detail..."
+                            rows={5}
+                            required
+                        />
+                    </div>
+                    <div className="modal-actions">
+                        <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>
+                        <Button variant="primary" type="submit" disabled={submitting}>
+                            {submitting ? (
+                                <><Loader2 size={16} className="spin" /> Submitting...</>
+                            ) : (
+                                <><Send size={16} /> Submit Ticket</>
                             )}
                         </Button>
                     </div>

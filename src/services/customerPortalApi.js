@@ -668,6 +668,100 @@ export const customerDevicesApi = {
     }
 };
 
+// ==================== SUPPORT TICKETS API ====================
+export const supportTicketsApi = {
+    // Get all tickets for a customer
+    async getByCustomer(customerId) {
+        try {
+            const { data, error } = await supabase
+                .from('support_tickets')
+                .select('*')
+                .eq('customer_id', customerId)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                // Return empty array if table doesn't exist
+                return [];
+            }
+            return data || [];
+        } catch {
+            return [];
+        }
+    },
+
+    // Create a new ticket
+    async create(customerId, ticketData) {
+        const { data, error } = await supabase
+            .from('support_tickets')
+            .insert([{
+                customer_id: customerId,
+                subject: ticketData.subject,
+                description: ticketData.description,
+                category: ticketData.category || 'general',
+                priority: ticketData.priority || 'medium',
+                status: 'open'
+            }])
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+
+        // Add initial message
+        await this.addMessage(data.id, customerId, ticketData.description, 'customer');
+
+        return data;
+    },
+
+    // Get messages for a ticket
+    async getMessages(ticketId) {
+        const { data, error } = await supabase
+            .from('support_ticket_messages')
+            .select('*')
+            .eq('ticket_id', ticketId)
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            return [];
+        }
+        return data || [];
+    },
+
+    // Add a message to a ticket
+    async addMessage(ticketId, senderId, message, senderType = 'customer') {
+        const { data, error } = await supabase
+            .from('support_ticket_messages')
+            .insert([{
+                ticket_id: ticketId,
+                sender_id: senderId,
+                sender_type: senderType,
+                message: message
+            }])
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data;
+    },
+
+    // Update ticket status
+    async updateStatus(ticketId, status) {
+        const updates = { status };
+        if (status === 'resolved' || status === 'closed') {
+            updates.resolved_at = new Date().toISOString();
+        }
+
+        const { data, error } = await supabase
+            .from('support_tickets')
+            .update(updates)
+            .eq('id', ticketId)
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+        return data;
+    }
+};
+
 // ==================== UNIFIED EXPORT ====================
 export const customerPortalApi = {
     notifications: notificationsApi,
@@ -680,7 +774,8 @@ export const customerPortalApi = {
     devices: customerDevicesApi,
     favorites: favoritesApi,
     paymentMethods: paymentMethodsApi,
-    chat: chatHistoryApi
+    chat: chatHistoryApi,
+    supportTickets: supportTicketsApi
 };
 
 export default customerPortalApi;
