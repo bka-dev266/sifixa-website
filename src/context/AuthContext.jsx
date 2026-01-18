@@ -157,23 +157,34 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         try {
-            const { user: authUser } = await authService.signIn(email, password);
-            const now = Date.now();
-            const expiry = now + SESSION_TIMEOUT;
+            const { user: authUser, session, error } = await authService.signIn(email, password);
 
-            setUser(authUser);
+            if (error) {
+                return { success: false, error: error.message };
+            }
 
-            // Wait for role data to load completely before returning
-            const roleData = await authService.getPrimaryRole(authUser.id);
-            const userProfile = await authService.getProfile(authUser.id);
+            if (authUser) {
+                setUser({
+                    ...authUser,
+                    name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email?.split('@')[0]
+                });
 
-            setProfile(userProfile);
-            setRole(roleData);
-            setSessionExpiry(expiry);
-            setLastActivity(now);
+                // Load profile and role
+                await loadUserData(authUser);
 
-            console.log('Login complete - user:', authUser.id, 'role:', roleData);
-            return { success: true, user: authUser, role: roleData };
+                // Set session expiry
+                const now = Date.now();
+                setSessionExpiry(now + SESSION_TIMEOUT);
+                setLastActivity(now);
+
+                return {
+                    success: true,
+                    user: authUser,
+                    role: await authService.getPrimaryRole(authUser.id)
+                };
+            }
+
+            return { success: false, error: 'Login failed' };
         } catch (error) {
             console.error('Login error:', error);
             return { success: false, error: error.message };

@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'; // eslint-disable-line no-unused-vars --
 import { api } from '../../../services/apiClient';
 import { mockApi } from '../../../services/mockApi'; // Legacy fallback
 import { customerPortalApi } from '../../../services/customerPortalApi';
+import { supabase } from '../../../services/supabase';
 import { generateInvoicePDF } from '../../../utils/pdfGenerator';
 import Button from '../../../components/Button';
 import ThemeToggle from '../../../components/ThemeToggle';
@@ -63,6 +64,9 @@ const CustomerProfile = () => {
     // Search state
     const [searchQuery, setSearchQuery] = useState('');
 
+    // Profile Avatar
+    const [avatarUrl, setAvatarUrl] = useState(null);
+
     // Support tickets state
     const [supportTickets, setSupportTickets] = useState([]);
     const [selectedTicket, setSelectedTicket] = useState(null);
@@ -89,127 +93,178 @@ const CustomerProfile = () => {
     const loadAllData = useCallback(async () => {
         if (!user) return;
         setLoading(true);
-        try {
-            // Get customer profile from Supabase or fallback
-            let customer = null;
-            let custId = user.id;
 
-            try {
-                const { data: customerResult } = await api.customers.list({ email: user.email });
-                if (customerResult && customerResult.length > 0) {
-                    customer = customerResult[0];
-                    custId = customer.id;
+        // Safety timeout (10s)
+        const safetyTimeout = setTimeout(() => {
+            console.warn('Data loading timed out - forcing UI render');
+            setLoading(false);
+        }, 10000);
+
+        try {
+            // Task 1: Find or create customer
+            let customer = null;
+            let custId = null;
+
+            // Try to find existing customer by email
+            const { data: existingCustomers, error: findError } = await supabase
+                .from('customers')
+                .select('*')
+                .eq('email', user.email)
+                .limit(1);
+
+            // Check for both error and empty array
+            if (!findError && existingCustomers && existingCustomers.length > 0) {
+                customer = existingCustomers[0];
+                custId = customer.id;
+                console.log('Found existing customer:', custId);
+            } else {
+                // Customer doesn't exist - create one
+                console.log('Creating new customer for:', user.email);
+                const nameParts = (user.name || user.full_name || user.email.split('@')[0] || 'Customer').split(' ');
+                const firstName = nameParts[0] || 'Customer';
+                const lastName = nameParts.slice(1).join(' ') || null;
+
+                const { data: newCustomer, error: createError } = await supabase
+                    .from('customers')
+                    .insert([{
+                        email: user.email,
+                        first_name: firstName,
+                        last_name: lastName,
+                        phone: user.phone || null
+                    }])
+                    .select()
+                    .single();
+
+                if (createError) {
+                    console.warn('Failed to create customer (might exist):', createError);
+                    custId = user.id;
+                } else {
+                    customer = newCustomer;
+                    custId = newCustomer.id;
                 }
-            } catch {
-                // Fallback to mockApi for customer lookup
-                const customers = await mockApi.getCustomers();
-                customer = customers.find(c => c.email === user.email);
-                custId = customer?.id || user.id;
             }
 
             setCustomerData(customer);
             setCustomerId(custId);
 
-            // Load data from real API with mockApi fallbacks
-            // Real API calls
-            const realApiPromises = Promise.allSettled([
-                api.bookings.list({ customer_id: custId }),
-                api.services.list(),
-                api.timeSlots.list(),
-                customerPortalApi.devices.getByCustomer(custId),
-                customerPortalApi.notifications.getByCustomer(custId),
-                customerPortalApi.loyalty.getByCustomer(custId),
-                customerPortalApi.invoices.getByCustomer(custId),
-                customerPortalApi.referrals.getByCustomer(custId),
-                customerPortalApi.referrals.getOrCreateCode(custId),
-                customerPortalApi.warranties.getByCustomer(custId),
-                customerPortalApi.settings.getByCustomer(custId),
-                customerPortalApi.reviews.getByCustomer(custId),
-                customerPortalApi.reviews.getReviewableBookings(custId)
-            ]);
-
-            const results = await realApiPromises;
-
-            // Helper to extract result or fallback
-            const getResult = (index, fallback = []) => {
-                const result = results[index];
-                if (result.status === 'fulfilled' && result.value) {
-                    // Handle both direct arrays and {data: array} responses
-                    return result.value.data || result.value;
-                }
-                return fallback;
-            };
-
-            // Set state from results with fallbacks
-            const bookingsData = getResult(0) || [];
-            // Filter bookings for this customer if needed
-            const customerBookings = Array.isArray(bookingsData)
-                ? bookingsData.filter(b =>
-                    b.customer_id === custId ||
-                    b.customer?.email === user.email
-                )
-                : [];
-            setBookings(customerBookings);
-
-            const servicesData = getResult(1) || [];
-            setServices(Array.isArray(servicesData) ? servicesData : []);
-
-            const timeSlotsData = getResult(2) || [];
-            setTimeSlots(Array.isArray(timeSlotsData) ? timeSlotsData.filter(s => s.active) : []);
-
-            // Customer portal data
-            setDevices(getResult(3) || []);
-            setNotifications(getResult(4) || []);
-            const loyaltyData = getResult(5);
-            setLoyalty(loyaltyData ? {
-                ...loyaltyData,
-                availableRewards: loyaltyData.availableRewards || [],
-                pointsHistory: loyaltyData.pointsHistory || [],
-                tierProgress: loyaltyData.tierProgress || 0,
-                lifetimePoints: loyaltyData.lifetimePoints || loyaltyData.lifetime_points || 0
-            } : {
-                points: 0,
-                tier: 'Bronze',
-                lifetimePoints: 0,
-                tierProgress: 0,
-                availableRewards: [],
-                pointsHistory: []
-            });
-            setInvoices(getResult(6) || []);
-            setReferrals(getResult(7) || []);
-            setReferralCode(getResult(8) || `SFX-${user.id?.slice(0, 6).toUpperCase() || 'NEW'}`);
-            setWarranties(getResult(9) || []);
-            setCustomerSettings(getResult(10) || { email_notifications: true, sms_notifications: true });
-            setReviews(getResult(11) || []);
-            setReviewableBookings(getResult(12) || []);
-
-            // Load additional data from Supabase (favorites, payment methods, chat, support tickets)
+            // Task 2: Bookings from view
+            let bookingsData = [];
             try {
-                const [favoritesData, paymentMethodsData, chatHistory, ticketsData] = await Promise.all([
-                    customerPortalApi.favorites.getByCustomer(custId),
-                    customerPortalApi.paymentMethods.getByCustomer(custId),
-                    customerPortalApi.chat.getByCustomer(custId),
-                    customerPortalApi.supportTickets.getByCustomer(custId)
-                ]);
-                setFavorites(favoritesData || []);
-                setPaymentMethods(paymentMethodsData || []);
-                setLiveChatMessages(chatHistory || []);
-                setSupportTickets(ticketsData || []);
+                const { data: bookings } = await supabase
+                    .from('customer_bookings_view')
+                    .select('*')
+                    .or(`customer_id.eq.${custId},customer_email.eq.${user.email}`)
+                    .order('created_at', { ascending: false });
+
+                if (bookings) {
+                    bookingsData = bookings.map(b => ({
+                        id: b.id,
+                        trackingNumber: b.tracking_number,
+                        date: b.date,
+                        time: b.time_slot_name || b.time,
+                        status: b.status || 'Pending',
+                        device: b.device_name || `${b.device_brand || ''} ${b.device_model || ''}`.trim() || 'Device',
+                        deviceType: b.device_type,
+                        issue: b.issue || 'Repair service',
+                        customer_id: b.customer_id,
+                        priority: b.priority_level || 'regular',
+                        created_at: b.created_at
+                    }));
+                }
+            } catch (err) { console.error('Bookings error:', err); }
+            setBookings(bookingsData);
+
+            // Task 6: Fallbacks for Tabs
+
+            try {
+                const { data } = await supabase.from('customer_notifications').select('*').eq('customer_id', custId).order('created_at', { ascending: false });
+                setNotifications(data || []);
+            } catch { setNotifications([]); }
+
+            try {
+                const { data } = await supabase.from('customer_loyalty').select('*').eq('customer_id', custId).single();
+                setLoyalty(data ? { ...data, availableRewards: data.availableRewards || [], pointsHistory: data.pointsHistory || [] } : { points: 0, tier: 'Bronze', availableRewards: [], pointsHistory: [] });
+            } catch { setLoyalty({ points: 0, tier: 'Bronze', availableRewards: [], pointsHistory: [] }); }
+
+            try {
+                const { data } = await supabase.from('profiles').select('avatar_url').eq('id', user.id).single();
+                if (data?.avatar_url) setAvatarUrl(data.avatar_url);
+            } catch { }
+
+            try {
+                const { data } = await supabase.from('devices').select('*').eq('customer_id', custId).order('created_at', { ascending: false });
+                setDevices(data || []);
+            } catch { setDevices([]); }
+
+            try {
+                const { data } = await supabase.from('customer_warranties').select('*').eq('customer_id', custId).order('warranty_expiry', { ascending: true });
+                setWarranties(data || []);
+            } catch { setWarranties([]); }
+
+            try {
+                const { data } = await supabase.from('customer_invoices').select('*').eq('customer_id', custId).order('created_at', { ascending: false });
+                setInvoices(data || []);
+            } catch { setInvoices([]); }
+
+            try {
+                const { data } = await supabase.from('customer_referrals').select('*').eq('referrer_id', custId);
+                setReferrals(data || []);
+                const refCode = (data && data.length > 0 && data[0].referral_code) ? data[0].referral_code : `SFX-${(custId || user.id).slice(0, 6).toUpperCase()}`;
+                setReferralCode(refCode);
             } catch {
-                console.warn('Optional data load failed');
-                setFavorites([]);
-                setPaymentMethods([]);
-                setLiveChatMessages([]);
-                setSupportTickets([]);
+                setReferrals([]);
+                setReferralCode(`SFX-${(custId || user.id).slice(0, 6).toUpperCase()}`);
             }
 
-            // Default messages for support chat
-            setMessages([
-                { id: 1, type: 'received', sender: 'SIFIXA Support', message: 'Welcome to SIFIXA! How can we help you today?', date: new Date().toLocaleString() }
-            ]);
+            try {
+                const { data } = await supabase.from('customer_settings').select('*').eq('customer_id', custId).single();
+                setCustomerSettings(data || { email_notifications: true, sms_notifications: true });
+            } catch { setCustomerSettings({ email_notifications: true, sms_notifications: true }); }
+
+            try {
+                const { data } = await supabase.from('customer_reviews').select('*').eq('customer_id', custId).order('created_at', { ascending: false });
+                setReviews(data || []);
+            } catch { setReviews([]); }
+
+            try {
+                const { data } = await supabase.from('customer_favorites').select('*').eq('customer_id', custId);
+                setFavorites(data || []);
+            } catch { setFavorites([]); }
+
+            try {
+                const { data } = await supabase.from('customer_payment_methods').select('*').eq('customer_id', custId).order('is_default', { ascending: false });
+                setPaymentMethods(data || []);
+            } catch { setPaymentMethods([]); }
+
+            try {
+                const { data } = await supabase.from('support_tickets').select('*').eq('customer_id', user.id).order('created_at', { ascending: false });
+                setSupportTickets(data || []);
+            } catch { setSupportTickets([]); }
+
+            try {
+                const { data } = await supabase.from('repair_services').select('*').eq('is_active', true).order('display_order');
+                // Use a safe check
+                if (data) setServices(data);
+                else {
+                    // Need to fallback to api.services if supabase table fails? 
+                    // Assuming supabase client works if api works.
+                    setServices([]);
+                }
+            } catch (err) { setServices([]); }
+
+            try {
+                const { data } = await supabase.from('time_slots').select('*').eq('is_active', true).order('start_time');
+                setTimeSlots((data || []).map(s => ({
+                    id: s.id, name: s.name, startTime: s.start_time, endTime: s.end_time, maxBookings: s.max_bookings, active: s.is_active
+                })));
+            } catch { setTimeSlots([]); }
+
+            setMessages([{ id: 1, type: 'received', sender: 'SIFIXA Support', message: 'Welcome to SIFIXA! How can we help you today?', date: new Date().toLocaleString() }]);
+
         } catch (error) {
             console.error('Failed to load customer data:', error);
         } finally {
+            clearTimeout(safetyTimeout);
             setLoading(false);
         }
     }, [user]);
@@ -219,9 +274,16 @@ const CustomerProfile = () => {
         loadAllData();
     }, [user, loadAllData]);
 
-    const handleLogout = () => {
-        logout();
-        navigate('/');
+    const handleLogout = async (e) => {
+        if (e) e.preventDefault();
+        try {
+            await logout();
+            navigate('/');
+        } catch (error) {
+            console.error('Logout failed:', error);
+            // Force navigation even if API fail
+            navigate('/');
+        }
     };
 
     const getStatusIcon = (status) => {
@@ -689,6 +751,37 @@ const CustomerProfile = () => {
         }
     };
 
+    // Avatar Upload Handler
+    const handleAvatarUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // specific validation
+        if (file.size > 5 * 1024 * 1024) {
+            alert('File size too large. Max 5MB.');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            const publicUrl = await customerPortalApi.profile.uploadAvatar(user.id, file);
+            setAvatarUrl(publicUrl);
+
+            // Also update auth metadata to keep generic user object in sync if possible
+            // but primarily we rely on the local state
+        } catch (error) {
+            console.error('Avatar upload failed:', error);
+            alert('Failed to upload avatar: ' + error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Trigger file input click
+    const triggerFileInput = () => {
+        document.getElementById('avatar-upload').click();
+    };
+
     if (!user) {
         return (
             <div className="customer-profile-page" role="main" aria-label="Customer Profile">
@@ -735,8 +828,18 @@ const CustomerProfile = () => {
                         <Home size={18} /> Home
                     </Link>
                     <div className="profile-avatar-wrapper">
-                        <div className="profile-avatar" style={{ borderColor: getTierColor(loyalty?.tier) }}>
-                            {user.name?.charAt(0) || user.username?.charAt(0) || 'U'}
+                        <div className="profile-avatar" style={{ borderColor: getTierColor(loyalty?.tier), backgroundImage: avatarUrl ? `url(${avatarUrl})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+                            {!avatarUrl && (user.name?.charAt(0) || user.username?.charAt(0) || 'U')}
+                            <button className="avatar-edit-btn" onClick={triggerFileInput} title="Change Profile Photo">
+                                <Camera size={14} />
+                            </button>
+                            <input
+                                type="file"
+                                id="avatar-upload"
+                                accept="image/*"
+                                onChange={handleAvatarUpload}
+                                style={{ display: 'none' }}
+                            />
                         </div>
                     </div>
                     {loyalty && (
@@ -752,46 +855,20 @@ const CustomerProfile = () => {
 
                 <nav className="profile-nav" role="navigation" aria-label="Profile navigation">
                     <button className={`nav-item ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => { setActiveTab('overview'); setSidebarOpen(false); }} aria-current={activeTab === 'overview' ? 'page' : undefined}>
-                        <Home size={18} aria-hidden="true" /> <span>Overview</span>
+                        <Home size={18} aria-hidden="true" /> <span>Dashboard</span>
+                    </button>
+                    <button className={`nav-item ${activeTab === 'bookings' ? 'active' : ''}`} onClick={() => { setActiveTab('bookings'); setSidebarOpen(false); }} aria-current={activeTab === 'bookings' ? 'page' : undefined}>
+                        <Calendar size={18} aria-hidden="true" /> <span>Bookings</span>
+                        {activeBookings.length > 0 && <span className="badge" aria-label={`${activeBookings.length} active`}>{activeBookings.length}</span>}
                     </button>
                     <button className={`nav-item ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => { setActiveTab('profile'); setSidebarOpen(false); }} aria-current={activeTab === 'profile' ? 'page' : undefined}>
                         <User size={18} aria-hidden="true" /> <span>Profile</span>
-                    </button>
-                    <button className={`nav-item ${activeTab === 'bookings' ? 'active' : ''}`} onClick={() => { setActiveTab('bookings'); setSidebarOpen(false); }} aria-current={activeTab === 'bookings' ? 'page' : undefined}>
-                        <Calendar size={18} aria-hidden="true" /> <span>My Bookings</span>
-                        {activeBookings.length > 0 && <span className="badge" aria-label={`${activeBookings.length} active`}>{activeBookings.length}</span>}
-                    </button>
-                    <button className={`nav-item ${activeTab === 'warranties' ? 'active' : ''}`} onClick={() => { setActiveTab('warranties'); setSidebarOpen(false); }} aria-current={activeTab === 'warranties' ? 'page' : undefined}>
-                        <ShieldCheck size={18} aria-hidden="true" /> <span>Warranties</span>
-                        {warranties.filter(w => w.status === 'active').length > 0 && <span className="badge subtle">{warranties.filter(w => getWarrantyStatus(w).status !== 'expired').length}</span>}
-                    </button>
-                    <button className={`nav-item ${activeTab === 'notifications' ? 'active' : ''}`} onClick={() => { setActiveTab('notifications'); setSidebarOpen(false); }} aria-current={activeTab === 'notifications' ? 'page' : undefined}>
-                        <Bell size={18} aria-hidden="true" /> <span>Notifications</span>
-                        {unreadCount > 0 && <span className="badge alert" aria-label={`${unreadCount} unread`}>{unreadCount}</span>}
-                    </button>
-                    <button className={`nav-item ${activeTab === 'loyalty' ? 'active' : ''}`} onClick={() => { setActiveTab('loyalty'); setSidebarOpen(false); }} aria-current={activeTab === 'loyalty' ? 'page' : undefined}>
-                        <Award size={18} aria-hidden="true" /> <span>Rewards & Referrals</span>
-                    </button>
-                    <button className={`nav-item ${activeTab === 'devices' ? 'active' : ''}`} onClick={() => { setActiveTab('devices'); setSidebarOpen(false); }} aria-current={activeTab === 'devices' ? 'page' : undefined}>
-                        <Smartphone size={18} aria-hidden="true" /> <span>My Devices</span>
-                        {devices.length > 0 && <span className="badge subtle">{devices.length}</span>}
-                    </button>
-                    <button className={`nav-item ${activeTab === 'invoices' ? 'active' : ''}`} onClick={() => { setActiveTab('invoices'); setSidebarOpen(false); }} aria-current={activeTab === 'invoices' ? 'page' : undefined}>
-                        <Receipt size={18} aria-hidden="true" /> <span>Invoices</span>
-                    </button>
-                    <button className={`nav-item ${activeTab === 'reviews' ? 'active' : ''}`} onClick={() => { setActiveTab('reviews'); setSidebarOpen(false); }} aria-current={activeTab === 'reviews' ? 'page' : undefined}>
-                        <Star size={18} aria-hidden="true" /> <span>My Reviews</span>
-                        {reviewableBookings.length > 0 && <span className="badge alert">{reviewableBookings.length}</span>}
                     </button>
                     <button className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => { setActiveTab('settings'); setSidebarOpen(false); }} aria-current={activeTab === 'settings' ? 'page' : undefined}>
                         <Settings size={18} aria-hidden="true" /> <span>Settings</span>
                     </button>
                     <button className={`nav-item ${activeTab === 'support' ? 'active' : ''}`} onClick={() => { setActiveTab('support'); setSidebarOpen(false); }} aria-current={activeTab === 'support' ? 'page' : undefined}>
-                        <Ticket size={18} aria-hidden="true" /> <span>Support</span>
-                        {supportTickets.filter(t => t.status === 'open').length > 0 && <span className="badge alert">{supportTickets.filter(t => t.status === 'open').length}</span>}
-                    </button>
-                    <button className={`nav-item ${activeTab === 'help' ? 'active' : ''}`} onClick={() => { setActiveTab('help'); setSidebarOpen(false); }} aria-current={activeTab === 'help' ? 'page' : undefined}>
-                        <HelpCircle size={18} aria-hidden="true" /> <span>Help Center</span>
+                        <Headphones size={18} aria-hidden="true" /> <span>Support</span>
                     </button>
                 </nav>
 
@@ -821,10 +898,10 @@ const CustomerProfile = () => {
                     </div>
                 ) : (
                     <>
-                        {/* OVERVIEW TAB */}
+                        {/* DASHBOARD TAB - Simplified */}
                         {activeTab === 'overview' && (
-                            <div className="overview-section">
-                                {/* Welcome Hero with Time-based Greeting */}
+                            <div className="overview-section dashboard-simple">
+                                {/* Simple Welcome */}
                                 <motion.div
                                     className="welcome-hero"
                                     initial={{ opacity: 0, y: 20 }}
@@ -857,317 +934,53 @@ const CustomerProfile = () => {
                                     )}
                                 </motion.div>
 
-                                {/* Global Search Bar */}
-                                <motion.div
-                                    className="portal-search-container"
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.2, duration: 0.4 }}
-                                >
-                                    <div className="portal-search-bar">
-                                        <Search size={20} className="search-icon" />
-                                        <input
-                                            type="text"
-                                            placeholder="Search bookings, invoices, devices, FAQs..."
-                                            value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
-                                            className="portal-search-input"
-                                        />
-                                        {searchQuery && (
-                                            <button className="search-clear-btn" onClick={() => setSearchQuery('')}>
-                                                <X size={16} />
-                                            </button>
-                                        )}
-                                    </div>
-                                    {searchQuery && (
-                                        <div className="search-results-dropdown">
-                                            <div className="search-results-section">
-                                                <h4><Calendar size={14} /> Bookings</h4>
-                                                {bookings.filter(b =>
-                                                    b.issue?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                                    getDeviceName(b.device)?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                                    b.tracking_number?.toLowerCase().includes(searchQuery.toLowerCase())
-                                                ).slice(0, 3).map(b => (
-                                                    <button key={b.id} className="search-result-item" onClick={() => { setSearchQuery(''); setActiveTab('bookings'); }}>
-                                                        <span>{getDeviceName(b.device)} - {b.issue}</span>
-                                                        <ChevronRight size={14} />
-                                                    </button>
-                                                ))}
-                                                {bookings.filter(b =>
-                                                    b.issue?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                                    getDeviceName(b.device)?.toLowerCase().includes(searchQuery.toLowerCase())
-                                                ).length === 0 && <span className="no-results">No matching bookings</span>}
-                                            </div>
-                                            <div className="search-results-section">
-                                                <h4><Receipt size={14} /> Invoices</h4>
-                                                {invoices.filter(i =>
-                                                    i.invoice_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                                    i.description?.toLowerCase().includes(searchQuery.toLowerCase())
-                                                ).slice(0, 3).map(i => (
-                                                    <button key={i.id} className="search-result-item" onClick={() => { setSearchQuery(''); setActiveTab('invoices'); }}>
-                                                        <span>{i.invoice_number} - ${i.total}</span>
-                                                        <ChevronRight size={14} />
-                                                    </button>
-                                                ))}
-                                                {invoices.filter(i =>
-                                                    i.invoice_number?.toLowerCase().includes(searchQuery.toLowerCase())
-                                                ).length === 0 && <span className="no-results">No matching invoices</span>}
-                                            </div>
-                                            <div className="search-results-section">
-                                                <h4><Smartphone size={14} /> Devices</h4>
-                                                {devices.filter(d =>
-                                                    d.brand?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                                    d.model?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                                    d.name?.toLowerCase().includes(searchQuery.toLowerCase())
-                                                ).slice(0, 3).map(d => (
-                                                    <button key={d.id} className="search-result-item" onClick={() => { setSearchQuery(''); setActiveTab('devices'); }}>
-                                                        <span>{d.brand} {d.model}</span>
-                                                        <ChevronRight size={14} />
-                                                    </button>
-                                                ))}
-                                                {devices.filter(d =>
-                                                    d.brand?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                                    d.model?.toLowerCase().includes(searchQuery.toLowerCase())
-                                                ).length === 0 && <span className="no-results">No matching devices</span>}
-                                            </div>
-                                            <button className="view-all-results" onClick={() => setActiveTab('help')}>
-                                                <HelpCircle size={14} /> Search Help Center
-                                            </button>
-                                        </div>
-                                    )}
-                                </motion.div>
-
-                                {/* Stats Cards */}
-                                <div className="stats-cards">
-                                    {[
-                                        { icon: <Package size={24} />, value: bookings.length, label: 'Total Repairs', color: 'blue' },
-                                        { icon: <Clock3 size={24} />, value: activeBookings.length, label: 'Active', color: 'orange' },
-                                        { icon: <CheckCircle size={24} />, value: completedBookings.length, label: 'Completed', color: 'green' },
-                                        { icon: <Star size={24} />, value: loyalty?.points || 0, label: 'Points', color: 'purple' }
-                                    ].map((stat, index) => (
-                                        <motion.div
-                                            key={stat.label}
-                                            className="stat-card"
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ duration: 0.4, delay: 0.1 + index * 0.1 }}
-                                            whileHover={{ scale: 1.02, y: -4 }}
-                                        >
-                                            <div className={`stat-icon ${stat.color}`}>{stat.icon}</div>
-                                            <div className="stat-info">
-                                                <span className="stat-value">{stat.value}</span>
-                                                <span className="stat-label">{stat.label}</span>
-                                            </div>
-                                        </motion.div>
-                                    ))}
-                                </div>
-
-                                {/* Notification Alert */}
-                                {unreadCount > 0 && (
+                                {/* Simple Stats - Just 2 cards */}
+                                <div className="stats-cards simple-stats">
                                     <motion.div
-                                        className="notification-alert"
-                                        initial={{ opacity: 0, x: -20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        onClick={() => setActiveTab('notifications')}
-                                    >
-                                        <div className="alert-icon">
-                                            <Bell size={20} />
-                                            <span className="alert-count">{unreadCount}</span>
-                                        </div>
-                                        <span>You have {unreadCount} unread notification{unreadCount > 1 ? 's' : ''}</span>
-                                        <ChevronRight size={18} />
-                                    </motion.div>
-                                )}
-
-                                {/* Two Column Layout */}
-                                <div className="overview-grid">
-                                    {/* Left Column - Active Repairs with Progress */}
-                                    <motion.div
-                                        className="overview-card repairs-tracker"
+                                        className="stat-card"
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: 0.3 }}
+                                        transition={{ duration: 0.4, delay: 0.1 }}
                                     >
-                                        <div className="card-title">
-                                            <Package size={20} />
-                                            <h3>Active Repairs</h3>
-                                            {activeBookings.length > 0 && (
-                                                <span className="count-badge">{activeBookings.length}</span>
-                                            )}
+                                        <div className="stat-icon blue"><Package size={24} /></div>
+                                        <div className="stat-info">
+                                            <span className="stat-value">{activeBookings.length}</span>
+                                            <span className="stat-label">Active Repairs</span>
                                         </div>
-
-                                        {activeBookings.length === 0 ? (
-                                            <div className="empty-card-state">
-                                                <CheckCircle size={40} />
-                                                <p>No active repairs</p>
-                                                <Link to="/booking">
-                                                    <Button variant="primary">Book a Repair</Button>
-                                                </Link>
-                                            </div>
-                                        ) : (
-                                            <div className="repairs-tracker-list">
-                                                {activeBookings.slice(0, 3).map((booking, idx) => {
-                                                    const progress = getRepairProgress(booking.status);
-                                                    return (
-                                                        <motion.div
-                                                            key={booking.id}
-                                                            className="repair-tracker-item"
-                                                            initial={{ opacity: 0, x: -20 }}
-                                                            animate={{ opacity: 1, x: 0 }}
-                                                            transition={{ delay: 0.4 + idx * 0.1 }}
-                                                        >
-                                                            <div className="repair-header">
-                                                                <div className="device-info">
-                                                                    <Smartphone size={18} />
-                                                                    <div>
-                                                                        <h4>{getDeviceName(booking.device)}</h4>
-                                                                        <span className="issue">{booking.issue}</span>
-                                                                    </div>
-                                                                </div>
-                                                                <span className={`status-pill ${booking.status.toLowerCase().replace(' ', '-')}`}>
-                                                                    {booking.status}
-                                                                </span>
-                                                            </div>
-                                                            <div className="progress-tracker">
-                                                                <div className="progress-bar-track">
-                                                                    <motion.div
-                                                                        className="progress-bar-fill"
-                                                                        initial={{ width: 0 }}
-                                                                        animate={{ width: `${progress.percent}%` }}
-                                                                        transition={{ duration: 0.8, delay: 0.5 + idx * 0.1 }}
-                                                                    />
-                                                                </div>
-                                                                <div className="progress-steps">
-                                                                    {['Received', 'Confirmed', 'Repairing', 'Ready'].map((step, i) => (
-                                                                        <div
-                                                                            key={step}
-                                                                            className={`progress-step ${progress.step > i ? 'completed' : ''} ${progress.step === i + 1 ? 'active' : ''}`}
-                                                                        >
-                                                                            <div className="step-dot" />
-                                                                            <span>{step}</span>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            </div>
-                                                            <div className="repair-footer">
-                                                                <span className="repair-date"><Calendar size={14} /> {booking.date}</span>
-                                                                <button
-                                                                    className="view-details-btn"
-                                                                    onClick={() => setActiveTab('bookings')}
-                                                                >
-                                                                    View Details <ChevronRight size={14} />
-                                                                </button>
-                                                            </div>
-                                                        </motion.div>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
                                     </motion.div>
-
-                                    {/* Right Column */}
-                                    <div className="overview-right-col">
-                                        {/* Quick Actions */}
-                                        <motion.div
-                                            className="overview-card quick-actions-card"
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: 0.4 }}
-                                        >
-                                            <div className="card-title">
-                                                <Settings size={20} />
-                                                <h3>Quick Actions</h3>
-                                            </div>
-                                            <div className="quick-actions-list">
-                                                <Link to="/booking" className="quick-action-item">
-                                                    <div className="action-icon blue"><Package size={18} /></div>
-                                                    <span>Book Repair</span>
-                                                    <ChevronRight size={16} />
-                                                </Link>
-                                                <Link to="/track" className="quick-action-item">
-                                                    <div className="action-icon orange"><Clock size={18} /></div>
-                                                    <span>Track Order</span>
-                                                    <ChevronRight size={16} />
-                                                </Link>
-                                                <button className="quick-action-item" onClick={() => setActiveTab('messages')}>
-                                                    <div className="action-icon green"><MessageSquare size={18} /></div>
-                                                    <span>Contact Support</span>
-                                                    <ChevronRight size={16} />
-                                                </button>
-                                                <button className="quick-action-item" onClick={() => setActiveTab('loyalty')}>
-                                                    <div className="action-icon purple"><Gift size={18} /></div>
-                                                    <span>Redeem Points</span>
-                                                    <ChevronRight size={16} />
-                                                </button>
-                                            </div>
-                                        </motion.div>
-
-                                        {/* Upcoming Appointments */}
-                                        <motion.div
-                                            className="overview-card appointments-card"
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: 0.5 }}
-                                        >
-                                            <div className="card-title">
-                                                <Calendar size={20} />
-                                                <h3>Upcoming</h3>
-                                            </div>
-                                            {activeBookings.filter(b => b.status === 'Confirmed').length === 0 ? (
-                                                <div className="no-appointments">
-                                                    <Calendar size={32} />
-                                                    <p>No upcoming appointments</p>
-                                                </div>
-                                            ) : (
-                                                <div className="appointments-list">
-                                                    {activeBookings.filter(b => b.status === 'Confirmed').slice(0, 2).map(booking => (
-                                                        <div key={booking.id} className="appointment-item">
-                                                            <div className="appointment-date">
-                                                                <span className="day">{new Date(booking.date).getDate()}</span>
-                                                                <span className="month">{new Date(booking.date).toLocaleString('default', { month: 'short' })}</span>
-                                                            </div>
-                                                            <div className="appointment-info">
-                                                                <h4>{getDeviceName(booking.device)}</h4>
-                                                                <span>{booking.time || 'Morning'}</span>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </motion.div>
-
-                                        {/* Recent Activity */}
-                                        <motion.div
-                                            className="overview-card activity-card"
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: 0.6 }}
-                                        >
-                                            <div className="card-title">
-                                                <TrendingUp size={20} />
-                                                <h3>Recent Activity</h3>
-                                            </div>
-                                            <div className="activity-timeline">
-                                                {notifications.slice(0, 4).map((notif) => (
-                                                    <div key={notif.id} className={`activity-item ${!notif.read ? 'unread' : ''}`}>
-                                                        <div className="activity-dot" />
-                                                        <div className="activity-content">
-                                                            <p>{notif.title}</p>
-                                                            <span className="activity-time">
-                                                                {new Date(notif.date).toLocaleDateString()}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                                {notifications.length === 0 && (
-                                                    <div className="no-activity">
-                                                        <p>No recent activity</p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </motion.div>
-                                    </div>
+                                    <motion.div
+                                        className="stat-card"
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 0.4, delay: 0.2 }}
+                                    >
+                                        <div className="stat-icon green"><CheckCircle size={24} /></div>
+                                        <div className="stat-info">
+                                            <span className="stat-value">{completedBookings.length}</span>
+                                            <span className="stat-label">Completed</span>
+                                        </div>
+                                    </motion.div>
                                 </div>
+
+                                {/* Simple Quick Actions - Just 2 buttons */}
+                                <motion.div
+                                    className="quick-actions-simple"
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.3 }}
+                                >
+                                    <h3>Quick Actions</h3>
+                                    <div className="action-buttons">
+                                        <Link to="/booking" className="action-btn primary">
+                                            <Package size={20} />
+                                            <span>Book Repair</span>
+                                        </Link>
+                                        <Link to="/track" className="action-btn secondary">
+                                            <Clock size={20} />
+                                            <span>Track Repair</span>
+                                        </Link>
+                                    </div>
+                                </motion.div>
                             </div>
                         )}
 
@@ -2546,7 +2359,7 @@ const CustomerProfile = () => {
                         {activeTab === 'support' && (
                             <div className="support-section">
                                 <div className="section-header">
-                                    <h1><Ticket size={28} /> Support Tickets</h1>
+                                    <h1><Headphones size={28} /> Support</h1>
                                     <Button variant="primary" onClick={() => setShowTicketModal(true)}>
                                         <Plus size={16} /> Submit a Ticket
                                     </Button>
@@ -2554,7 +2367,7 @@ const CustomerProfile = () => {
 
                                 {supportTickets.length === 0 ? (
                                     <EmptyState
-                                        icon={<Ticket size={48} />}
+                                        icon={Headphones}
                                         title="No support tickets"
                                         description="Have an issue? Submit a ticket and our team will help you out."
                                         action={

@@ -762,6 +762,91 @@ export const supportTicketsApi = {
     }
 };
 
+// ==================== PROFILE API ====================
+export const profileApi = {
+    // Upload avatar image to Supabase Storage
+    async uploadAvatar(customerId, file) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${customerId}-${Date.now()}.${fileExt}`;
+        const filePath = `${customerId}/${fileName}`;
+
+        // Upload to storage bucket
+        const { error: uploadError } = await supabase.storage
+            .from('avatars')
+            .upload(filePath, file, {
+                cacheControl: '3600',
+                upsert: true
+            });
+
+        if (uploadError) {
+            // If bucket doesn't exist, return a helpful error
+            if (uploadError.message.includes('not found')) {
+                throw new Error('Avatar storage not configured. Please run the storage migration.');
+            }
+            throw new Error(uploadError.message);
+        }
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+            .from('avatars')
+            .getPublicUrl(filePath);
+
+        // Update profile with new avatar URL
+        const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ avatar_url: publicUrl })
+            .eq('id', customerId);
+
+        if (updateError) {
+            console.warn('Could not update profile with avatar URL:', updateError);
+        }
+
+        return publicUrl;
+    },
+
+    // Get avatar URL for a customer
+    async getAvatarUrl(customerId) {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('avatar_url')
+            .eq('id', customerId)
+            .single();
+
+        if (error || !data?.avatar_url) {
+            return null;
+        }
+        return data.avatar_url;
+    },
+
+    // Delete avatar
+    async deleteAvatar(customerId) {
+        // Get current avatar path
+        const { data } = await supabase
+            .from('profiles')
+            .select('avatar_url')
+            .eq('id', customerId)
+            .single();
+
+        if (data?.avatar_url) {
+            // Extract file path from URL
+            const urlParts = data.avatar_url.split('/avatars/');
+            if (urlParts.length > 1) {
+                const filePath = `avatars/${urlParts[1]}`;
+                await supabase.storage.from('avatars').remove([filePath]);
+            }
+        }
+
+        // Clear avatar URL in profile
+        const { error } = await supabase
+            .from('profiles')
+            .update({ avatar_url: null })
+            .eq('id', customerId);
+
+        if (error) throw new Error(error.message);
+        return true;
+    }
+};
+
 // ==================== UNIFIED EXPORT ====================
 export const customerPortalApi = {
     notifications: notificationsApi,
@@ -775,7 +860,8 @@ export const customerPortalApi = {
     favorites: favoritesApi,
     paymentMethods: paymentMethodsApi,
     chat: chatHistoryApi,
-    supportTickets: supportTicketsApi
+    supportTickets: supportTicketsApi,
+    profile: profileApi
 };
 
 export default customerPortalApi;

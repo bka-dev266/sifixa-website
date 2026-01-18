@@ -31,10 +31,17 @@ const Navbar = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    const handleLogout = () => {
-        logout();
-        setShowUserMenu(false);
-        navigate('/');
+    const handleLogout = async (e) => {
+        if (e) e.preventDefault();
+        try {
+            await logout();
+            navigate('/');
+        } catch (error) {
+            console.error('Logout failed:', error);
+            navigate('/');
+        } finally {
+            setShowUserMenu(false);
+        }
     };
 
     const getDashboardLink = () => {
@@ -44,6 +51,17 @@ const Navbar = () => {
         if (user?.role === 'inventory') return '/inventory';
         if (user?.role === 'sales') return '/pos';
         return '/customer/profile';
+    };
+
+    // Helper to get display name
+    const getDisplayName = () => {
+        if (!user) return 'Guest';
+        if (user.name) return user.name.split(' ')[0];
+        if (user.full_name) return user.full_name.split(' ')[0];
+        if (user.user_metadata?.full_name) return user.user_metadata.full_name.split(' ')[0];
+        if (user.username) return user.username;
+        if (user.email) return user.email.split('@')[0];
+        return 'User';
     };
 
     return (
@@ -72,7 +90,7 @@ const Navbar = () => {
                                     onClick={() => setShowUserMenu(!showUserMenu)}
                                 >
                                     <User size={18} />
-                                    <span>{user.name?.split(' ')[0] || user.username}</span>
+                                    <span>{getDisplayName()}</span>
                                 </button>
                                 {showUserMenu && (
                                     <div className="user-dropdown">
