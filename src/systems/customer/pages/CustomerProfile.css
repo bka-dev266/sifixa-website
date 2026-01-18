@@ -5372,6 +5372,7 @@
     right: 24px;
     z-index: 9999;
     font-family: var(--font-family);
+    display: none; /* Hidden for now - enable when live chat is ready */
 }
 
 .chat-toggle {
