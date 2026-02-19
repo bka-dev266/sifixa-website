@@ -162,11 +162,13 @@ const Booking = () => {
                     phone: formData.phone
                 });
 
-                if (!signupResult.success) {
-                    toast.error(signupResult.error || 'Failed to create account. Please try again.');
-                    return;
+                if (signupResult.success) {
+                    setAccountCreated(true);
+                } else {
+                    // Don't block booking — just warn that account creation failed
+                    console.warn('Account creation failed:', signupResult.error);
+                    toast.warning('Booking will proceed, but account creation failed. You can create an account later.');
                 }
-                setAccountCreated(true);
             }
 
             const bookingData = {
