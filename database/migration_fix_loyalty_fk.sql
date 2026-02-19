@@ -40,6 +40,14 @@ ALTER TABLE public.customer_loyalty
 ALTER TABLE public.customer_settings
     DROP CONSTRAINT IF EXISTS customer_settings_customer_id_fkey;
 
+-- 2b. DROP the old triggers on 'customers' table that cause the FK violation
+-- These triggers insert into customer_loyalty/customer_settings using customers.id
+-- which is NOT the auth UUID and fails the new FK to profiles.id
+DROP TRIGGER IF EXISTS trigger_create_customer_loyalty ON customers;
+DROP TRIGGER IF EXISTS trigger_create_customer_settings ON customers;
+DROP FUNCTION IF EXISTS create_customer_loyalty();
+DROP FUNCTION IF EXISTS create_customer_settings();
+
 -- 3. Ensure every auth user has a profile row
 -- (backfill profiles for any auth users who lack one)
 -- Uses email prefix + short random suffix for username to avoid duplicates
