@@ -280,7 +280,7 @@
 }
 
 /* Progress Tracker */
-.progress-tracker {
+.booking-result .progress-tracker {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
@@ -290,7 +290,7 @@
 }
 
 /* Single continuous line behind all circles */
-.progress-tracker::before {
+.booking-result .progress-tracker::before {
     content: '';
     position: absolute;
     top: 25px;
@@ -301,7 +301,7 @@
     z-index: 0;
 }
 
-.progress-step {
+.booking-result .progress-step {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -310,7 +310,7 @@
     z-index: 1;
 }
 
-.step-circle {
+.booking-result .step-circle {
     width: 50px;
     height: 50px;
     border-radius: 50%;
@@ -328,30 +328,25 @@
     transition: all 0.3s ease;
 }
 
-.step-circle.completed {
+.booking-result .step-circle.completed {
     background: linear-gradient(135deg, #22c55e, #16a34a);
     border-color: #22c55e;
     color: white;
 }
 
-.step-circle.current {
+.booking-result .step-circle.current {
     background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
     border-color: var(--accent-primary);
     color: white;
     box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
 }
 
-.step-label {
+.booking-result .step-label {
     font-size: 0.8rem;
     font-weight: 600;
     color: var(--text-secondary);
     text-align: center;
     letter-spacing: 0.3px;
-}
-
-/* Per-step line — hidden, background line handles it */
-.step-line {
-    display: none;
 }
 
 /* Detail Cards */
@@ -754,26 +749,26 @@
     }
 
     /* Progress Tracker - Keep Horizontal, Make Smaller */
-    .progress-tracker {
+    .booking-result .progress-tracker {
         gap: 0;
         margin-bottom: 24px;
         padding: 0;
     }
 
-    .progress-tracker::before {
+    .booking-result .progress-tracker::before {
         top: 20px;
         left: 30px;
         right: 30px;
     }
 
-    .step-circle {
+    .booking-result .step-circle {
         width: 40px;
         height: 40px;
         font-size: 0.85rem;
         border-width: 2px;
     }
 
-    .step-label {
+    .booking-result .step-label {
         font-size: 0.7rem;
     }
 
@@ -837,18 +832,18 @@
         padding: 4px 10px;
     }
 
-    .step-circle {
+    .booking-result .step-circle {
         width: 32px;
         height: 32px;
         font-size: 0.75rem;
         border-width: 2px;
     }
 
-    .step-label {
+    .booking-result .step-label {
         font-size: 0.6rem;
     }
 
-    .progress-tracker::before {
+    .booking-result .progress-tracker::before {
         top: 16px;
         left: 24px;
         right: 24px;

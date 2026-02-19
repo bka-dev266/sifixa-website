@@ -286,9 +286,6 @@ const TrackBooking = () => {
                                                 {index < getStatusStep(booking.status) ? <CheckCircle size={20} /> : index + 1}
                                             </div>
                                             <span className="step-label">{step}</span>
-                                            {index < statusSteps.length - 1 && (
-                                                <div className={`step-line ${index < getStatusStep(booking.status) - 1 ? 'completed' : ''}`} />
-                                            )}
                                         </div>
                                     ))}
                                 </div>
