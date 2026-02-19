@@ -42,7 +42,8 @@ const defaultFeatures = [
 const WhyChooseUs = ({ section, features, loading }) => {
     // Use defaults if no data
     const headerData = section?.title ? section : defaultSection;
-    const featuresData = features?.length > 0 ? features : defaultFeatures;
+    // Always use defaults for consistent display
+    const featuresData = defaultFeatures;
 
     // Loading skeleton
     if (loading) {
@@ -72,20 +73,13 @@ const WhyChooseUs = ({ section, features, loading }) => {
                     <p className="section-subtitle">{headerData.subtitle}</p>
                 </div>
 
-                {/* Features Grid - Dynamic */}
+                {/* Features Grid */}
                 <div className="features-grid">
                     {featuresData.map((feature, index) => {
                         const IconComponent = iconMap[feature.icon] || Clock;
 
                         return (
-                            <motion.div
-                                key={feature.id || index}
-                                className="feature-card"
-                                initial={{ opacity: 0, y: 20 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: index * 0.1, duration: 0.5 }}
-                            >
+                            <div key={feature.id || index} className="feature-card">
                                 <div className="feature-icon">
                                     <IconComponent size={32} />
                                 </div>
@@ -93,7 +87,7 @@ const WhyChooseUs = ({ section, features, loading }) => {
                                     <h3>{feature.title}</h3>
                                     <p>{feature.description}</p>
                                 </div>
-                            </motion.div>
+                            </div>
                         );
                     })}
                 </div>

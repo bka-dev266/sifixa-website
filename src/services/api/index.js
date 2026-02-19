@@ -43,6 +43,9 @@ export { servicesApi } from './services';
 // Repair Services (for booking page)
 export { repairServicesApi } from './repairServices';
 
+// Customer Addresses
+export { addressesApi } from './addresses';
+
 // Unified API object for convenience
 export const api = {
     // Core
@@ -82,7 +85,10 @@ export const api = {
     services: servicesApi,
 
     // Repair Services
-    repairServices: repairServicesApi
+    repairServices: repairServicesApi,
+
+    // Customer Addresses
+    addresses: addressesApi
 };
 
 // Import all for api object
@@ -105,5 +111,6 @@ import { reportingApi } from './reporting';
 import { storeSettingsApi } from './storeSettings';
 import { servicesApi } from './services';
 import { repairServicesApi } from './repairServices';
+import { addressesApi } from './addresses';
 
 export default api;

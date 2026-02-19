@@ -61,14 +61,15 @@ const CustomerLogin = () => {
         setError('');
         setLoading(true);
 
-        // Handle remember me
+        // Handle remember me - save email preference
         if (rememberMe) {
             localStorage.setItem('rememberedEmail', email);
         } else {
             localStorage.removeItem('rememberedEmail');
         }
 
-        const result = await login(email, password);
+        // Pass rememberMe to login so AuthContext can handle session persistence
+        const result = await login(email, password, rememberMe);
 
         if (result.success) {
             const roleData = result.role;

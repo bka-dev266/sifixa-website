@@ -7,6 +7,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 40px;
+  width: 100%;
 }
 
 /* Floating animation for feature cards */
@@ -45,7 +46,8 @@
   text-align: center;
   padding: 30px 20px;
   border-radius: 16px;
-  background: var(--input-bg);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   animation: featureFloat 4s ease-in-out infinite;
 }
 
@@ -153,20 +155,23 @@
   }
 
   .features-grid {
-    grid-template-columns: 1fr;
+    display: flex !important;
+    flex-direction: column;
     gap: 12px;
+    width: 100%;
   }
 
-  /* Horizontal layout without card styling on small screens */
+  /* Horizontal layout with visible styling on small screens */
   .feature-card {
     display: flex;
     flex-direction: row;
     align-items: center;
     text-align: left;
     gap: 14px;
-    padding: 12px 0;
-    background: transparent;
-    border-radius: 0;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
   }
 
   .feature-icon {

@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  CheckCircle, Clock, AlertCircle, Calendar, Smartphone, User, 
-  ArrowRight, ArrowLeft, Shield, Zap, Star, Phone, Mail, 
-  Wrench, ChevronRight, Copy, ExternalLink
+import {
+  CheckCircle, Clock, AlertCircle, Calendar, Smartphone, User,
+  ArrowRight, ArrowLeft, Shield, Zap, Star, Phone, Mail,
+  Wrench, ChevronRight, Copy, ExternalLink, Store, Truck, MapPin,
+  Tablet, Laptop, Watch, Gamepad2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../services/apiClient';
 import { useAuth } from '../context/AuthContext';
 import './BookingPage.css';
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 4; // 3 steps + confirmation
 
 // Fallback data if database queries fail
 const DEFAULT_SERVICES = [
@@ -28,10 +29,10 @@ const DEFAULT_TIME_SLOTS = [
 
 const DEVICE_TYPES = [
   { id: 'phone', label: 'Phone', icon: Smartphone },
-  { id: 'tablet', label: 'Tablet', icon: Smartphone },
-  { id: 'laptop', label: 'Laptop', icon: Smartphone },
-  { id: 'watch', label: 'Smart Watch', icon: Clock },
-  { id: 'console', label: 'Game Console', icon: Smartphone },
+  { id: 'tablet', label: 'Tablet', icon: Tablet },
+  { id: 'laptop', label: 'Laptop', icon: Laptop },
+  { id: 'watch', label: 'Watch', icon: Watch },
+  { id: 'console', label: 'Console', icon: Gamepad2 },
   { id: 'other', label: 'Other', icon: Wrench },
 ];
 
@@ -39,6 +40,12 @@ const PRIORITY_LEVELS = [
   { id: 'regular', name: 'Standard', fee: 0, description: 'Regular queue', icon: Clock },
   { id: 'priority', name: 'Priority', fee: 20, description: 'Faster service', icon: Zap, popular: true },
   { id: 'express', name: 'Express', fee: 40, description: 'Same-day rush', icon: Star },
+];
+
+const SERVICE_TYPES = [
+  { id: 'drop-off', label: 'Drop-off', description: 'Bring to our store', fee: 0, icon: Store },
+  { id: 'pick-up', label: 'Pick-up', description: 'We collect from you', fee: 15, icon: Truck },
+  { id: 'on-site', label: 'On-site', description: 'We come to you', fee: 25, icon: MapPin },
 ];
 
 export default function BookingPage() {
@@ -53,17 +60,29 @@ export default function BookingPage() {
   const [timeSlots, setTimeSlots] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Form state
-  const [selectedService, setSelectedService] = useState(null);
-  const [priorityLevel, setPriorityLevel] = useState('regular');
+  // Form state - Step 1: Device & Service
   const [deviceInfo, setDeviceInfo] = useState({
     type: 'phone',
     brand: '',
     model: '',
     issue: ''
   });
+  const [selectedService, setSelectedService] = useState(null);
+  const [priorityLevel, setPriorityLevel] = useState('regular');
+
+  // Form state - Step 2: Service Type, Location & Schedule
+  const [serviceType, setServiceType] = useState('drop-off');
+  const [address, setAddress] = useState({
+    line1: '',
+    line2: '',
+    city: '',
+    state: '',
+    zip: ''
+  });
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(null);
+
+  // Form state - Step 3: Contact
   const [customerInfo, setCustomerInfo] = useState({
     name: '',
     email: '',
@@ -108,19 +127,32 @@ export default function BookingPage() {
     return today.toISOString().split('T')[0];
   };
 
+  // Check if address is required
+  const needsAddress = serviceType === 'pick-up' || serviceType === 'on-site';
+
   // Validate current step
   const validateStep = (step) => {
     switch (step) {
       case 1:
-        return selectedService !== null;
+        // Device & Service: need device info and service selection
+        return deviceInfo.brand.length >= 2 &&
+          deviceInfo.model.length >= 2 &&
+          deviceInfo.issue.length >= 10 &&
+          selectedService !== null;
       case 2:
-        return deviceInfo.brand.length >= 2 && deviceInfo.model.length >= 2 && deviceInfo.issue.length >= 10;
+        // Service Type, Location & Schedule
+        const addressValid = !needsAddress || (
+          address.line1.length >= 5 &&
+          address.city.length >= 2 &&
+          address.state.length >= 2 &&
+          address.zip.length >= 5
+        );
+        return selectedDate && selectedTimeSlot !== null && addressValid;
       case 3:
-        return selectedDate && selectedTimeSlot !== null;
-      case 4:
-        return customerInfo.name.length >= 2 && 
-               /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerInfo.email) &&
-               customerInfo.phone.length >= 10;
+        // Contact info
+        return customerInfo.name.length >= 2 &&
+          /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerInfo.email) &&
+          customerInfo.phone.length >= 10;
       default:
         return true;
     }
@@ -148,6 +180,8 @@ export default function BookingPage() {
         serviceId: selectedService?.id || null,
         issue: deviceInfo.issue,
         priorityLevel: priorityLevel,
+        serviceType: serviceType,
+        address: needsAddress ? address : null,
         date: selectedDate,
         timeSlotId: selectedTimeSlot?.id || null,
         customer: {
@@ -159,7 +193,7 @@ export default function BookingPage() {
 
       const result = await api.bookings.create(bookingData);
       setBookingResult(result);
-      setCurrentStep(5);
+      setCurrentStep(4);
     } catch (error) {
       console.error('Booking failed:', error);
       alert('Failed to create booking. Please try again.');
@@ -174,8 +208,19 @@ export default function BookingPage() {
     }
   };
 
+  // Calculate total price
+  const calculateTotal = () => {
+    const servicePrice = selectedService?.priceMin || 0;
+    const priorityFee = PRIORITY_LEVELS.find(p => p.id === priorityLevel)?.fee || 0;
+    const serviceTypeFee = SERVICE_TYPES.find(s => s.id === serviceType)?.fee || 0;
+    return {
+      min: servicePrice + priorityFee + serviceTypeFee,
+      max: (selectedService?.priceMax || 0) + priorityFee + serviceTypeFee
+    };
+  };
+
   // Step titles
-  const stepTitles = ['Service', 'Device', 'Schedule', 'Contact', 'Confirmed'];
+  const stepTitles = ['Device & Service', 'Location & Schedule', 'Confirm'];
 
   if (loading) {
     return (
@@ -197,12 +242,12 @@ export default function BookingPage() {
             <ArrowLeft size={20} />
             <span>Back</span>
           </button>
-          
-          {currentStep < 5 && (
+
+          {currentStep < 4 && (
             <div className="step-progress">
-              {stepTitles.slice(0, 4).map((title, index) => (
-                <div 
-                  key={title} 
+              {stepTitles.map((title, index) => (
+                <div
+                  key={title}
                   className={`step-dot ${currentStep > index + 1 ? 'completed' : ''} ${currentStep === index + 1 ? 'active' : ''}`}
                 >
                   {currentStep > index + 1 ? (
@@ -216,7 +261,7 @@ export default function BookingPage() {
           )}
 
           <div className="step-info">
-            <span className="step-label">Step {currentStep} of {TOTAL_STEPS - 1}</span>
+            <span className="step-label">Step {currentStep} of 3</span>
           </div>
         </div>
       </header>
@@ -224,7 +269,7 @@ export default function BookingPage() {
       {/* Main content area */}
       <main className="booking-content">
         <AnimatePresence mode="wait">
-          {/* Step 1: Service Selection */}
+          {/* Step 1: Device & Service (Combined) */}
           {currentStep === 1 && (
             <motion.div
               key="step1"
@@ -235,11 +280,62 @@ export default function BookingPage() {
               transition={{ duration: 0.3 }}
             >
               <div className="step-header">
-                <Wrench size={28} className="step-icon" />
+                <Smartphone size={28} className="step-icon" />
                 <div>
-                  <h1>Select Your Service</h1>
-                  <p>What do you need help with?</p>
+                  <h1>Device & Service</h1>
+                  <p>Tell us about your device and what needs fixing</p>
                 </div>
+              </div>
+
+              {/* Device Type Selection */}
+              <div className="device-types">
+                {DEVICE_TYPES.map(type => (
+                  <div
+                    key={type.id}
+                    className={`device-type-card ${deviceInfo.type === type.id ? 'selected' : ''}`}
+                    onClick={() => setDeviceInfo({ ...deviceInfo, type: type.id })}
+                  >
+                    <type.icon size={24} />
+                    <span>{type.label}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Device Info */}
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Brand *</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Apple, Samsung"
+                    value={deviceInfo.brand}
+                    onChange={(e) => setDeviceInfo({ ...deviceInfo, brand: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Model *</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. iPhone 14 Pro"
+                    value={deviceInfo.model}
+                    onChange={(e) => setDeviceInfo({ ...deviceInfo, model: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Describe the Issue * <span className="char-count">({deviceInfo.issue.length}/10 min)</span></label>
+                <textarea
+                  placeholder="Please describe what's wrong with your device..."
+                  rows={3}
+                  value={deviceInfo.issue}
+                  onChange={(e) => setDeviceInfo({ ...deviceInfo, issue: e.target.value })}
+                />
+              </div>
+
+              {/* Service Selection */}
+              <div className="section-divider">
+                <h3>Select Service</h3>
               </div>
 
               <div className="services-grid">
@@ -287,7 +383,7 @@ export default function BookingPage() {
             </motion.div>
           )}
 
-          {/* Step 2: Device Information */}
+          {/* Step 2: Service Type, Location & Schedule */}
           {currentStep === 2 && (
             <motion.div
               key="step2"
@@ -298,60 +394,142 @@ export default function BookingPage() {
               transition={{ duration: 0.3 }}
             >
               <div className="step-header">
-                <Smartphone size={28} className="step-icon" />
+                <MapPin size={28} className="step-icon" />
                 <div>
-                  <h1>Device Details</h1>
-                  <p>Tell us about your device</p>
+                  <h1>Location & Schedule</h1>
+                  <p>How and when would you like your repair?</p>
                 </div>
               </div>
 
-              <div className="device-types">
-                {DEVICE_TYPES.map(type => (
+              {/* Service Type Selection */}
+              <div className="service-types">
+                {SERVICE_TYPES.map(type => (
                   <div
                     key={type.id}
-                    className={`device-type-card ${deviceInfo.type === type.id ? 'selected' : ''}`}
-                    onClick={() => setDeviceInfo({ ...deviceInfo, type: type.id })}
+                    className={`service-type-card ${serviceType === type.id ? 'selected' : ''}`}
+                    onClick={() => setServiceType(type.id)}
                   >
                     <type.icon size={24} />
-                    <span>{type.label}</span>
+                    <div className="service-type-info">
+                      <span className="service-type-label">{type.label}</span>
+                      <span className="service-type-desc">{type.description}</span>
+                    </div>
+                    <span className="service-type-fee">
+                      {type.fee === 0 ? 'Free' : `+$${type.fee}`}
+                    </span>
+                    {serviceType === type.id && (
+                      <CheckCircle size={20} className="service-type-check" />
+                    )}
                   </div>
                 ))}
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Brand *</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Apple, Samsung"
-                    value={deviceInfo.brand}
-                    onChange={(e) => setDeviceInfo({ ...deviceInfo, brand: e.target.value })}
-                  />
+              {/* Address Section (shown for pick-up/on-site) */}
+              {needsAddress && (
+                <div className="address-section">
+                  <h3>
+                    <MapPin size={18} />
+                    {serviceType === 'pick-up' ? 'Pick-up Address' : 'Service Address'}
+                  </h3>
+                  <div className="form-group">
+                    <label>Street Address *</label>
+                    <input
+                      type="text"
+                      placeholder="123 Main Street"
+                      value={address.line1}
+                      onChange={(e) => setAddress({ ...address, line1: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Apartment, Suite, etc. (optional)</label>
+                    <input
+                      type="text"
+                      placeholder="Apt 4B"
+                      value={address.line2}
+                      onChange={(e) => setAddress({ ...address, line2: e.target.value })}
+                    />
+                  </div>
+                  <div className="address-grid">
+                    <div className="form-group">
+                      <label>City *</label>
+                      <input
+                        type="text"
+                        placeholder="New York"
+                        value={address.city}
+                        onChange={(e) => setAddress({ ...address, city: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>State *</label>
+                      <input
+                        type="text"
+                        placeholder="NY"
+                        value={address.state}
+                        onChange={(e) => setAddress({ ...address, state: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>ZIP Code *</label>
+                      <input
+                        type="text"
+                        placeholder="10001"
+                        value={address.zip}
+                        onChange={(e) => setAddress({ ...address, zip: e.target.value })}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label>Model *</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. iPhone 14 Pro"
-                    value={deviceInfo.model}
-                    onChange={(e) => setDeviceInfo({ ...deviceInfo, model: e.target.value })}
-                  />
-                </div>
-              </div>
+              )}
 
-              <div className="form-group">
-                <label>Describe the Issue * <span className="char-count">({deviceInfo.issue.length}/10 min)</span></label>
-                <textarea
-                  placeholder="Please describe what's wrong with your device..."
-                  rows={3}
-                  value={deviceInfo.issue}
-                  onChange={(e) => setDeviceInfo({ ...deviceInfo, issue: e.target.value })}
-                />
+              {/* Date & Time Selection */}
+              <div className="schedule-section">
+                <h3>
+                  <Calendar size={18} />
+                  Select Date & Time
+                </h3>
+                <div className="form-group">
+                  <label>Select Date *</label>
+                  <input
+                    type="date"
+                    min={getMinDate()}
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                  />
+                </div>
+
+                {selectedDate && (
+                  <div className="time-slots-section">
+                    <label>Available Time Slots</label>
+                    <div className="time-slots-grid">
+                      {(timeSlots.length > 0 ? timeSlots : DEFAULT_TIME_SLOTS).map(slot => (
+                        <div
+                          key={slot.id}
+                          className={`time-slot-card ${selectedTimeSlot?.id === slot.id ? 'selected' : ''}`}
+                          onClick={() => setSelectedTimeSlot(slot)}
+                        >
+                          <Clock size={18} />
+                          <span className="slot-name">{slot.name}</span>
+                          <span className="slot-time">{slot.startTime} - {slot.endTime}</span>
+                          {selectedTimeSlot?.id === slot.id && (
+                            <CheckCircle size={18} className="slot-check" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {!selectedDate && (
+                  <div className="select-date-hint">
+                    <Calendar size={40} />
+                    <p>Please select a date to see available time slots</p>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
 
-          {/* Step 3: Date & Time Selection */}
+          {/* Step 3: Contact & Confirmation */}
           {currentStep === 3 && (
             <motion.div
               key="step3"
@@ -362,69 +540,10 @@ export default function BookingPage() {
               transition={{ duration: 0.3 }}
             >
               <div className="step-header">
-                <Calendar size={28} className="step-icon" />
-                <div>
-                  <h1>Choose Date & Time</h1>
-                  <p>When would you like to come in?</p>
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Select Date *</label>
-                <input
-                  type="date"
-                  min={getMinDate()}
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                />
-              </div>
-
-              {selectedDate && (
-                <div className="time-slots-section">
-                  <label>Available Time Slots</label>
-                  <div className="time-slots-grid">
-                    {(timeSlots.length > 0 ? timeSlots : DEFAULT_TIME_SLOTS).map(slot => (
-                      <div
-                        key={slot.id}
-                        className={`time-slot-card ${selectedTimeSlot?.id === slot.id ? 'selected' : ''}`}
-                        onClick={() => setSelectedTimeSlot(slot)}
-                      >
-                        <Clock size={18} />
-                        <span className="slot-name">{slot.name}</span>
-                        <span className="slot-time">{slot.startTime} - {slot.endTime}</span>
-                        {selectedTimeSlot?.id === slot.id && (
-                          <CheckCircle size={18} className="slot-check" />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {!selectedDate && (
-                <div className="select-date-hint">
-                  <Calendar size={40} />
-                  <p>Please select a date to see available time slots</p>
-                </div>
-              )}
-            </motion.div>
-          )}
-
-          {/* Step 4: Customer Information */}
-          {currentStep === 4 && (
-            <motion.div
-              key="step4"
-              className="step-container"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="step-header">
                 <User size={28} className="step-icon" />
                 <div>
-                  <h1>Contact Information</h1>
-                  <p>How can we reach you?</p>
+                  <h1>Contact & Confirm</h1>
+                  <p>Review your booking and provide contact details</p>
                 </div>
               </div>
 
@@ -470,13 +589,27 @@ export default function BookingPage() {
               <div className="booking-summary">
                 <h3>Booking Summary</h3>
                 <div className="summary-row">
+                  <span>Device:</span>
+                  <span>{DEVICE_TYPES.find(d => d.id === deviceInfo.type)?.label} - {deviceInfo.brand} {deviceInfo.model}</span>
+                </div>
+                <div className="summary-row">
                   <span>Service:</span>
                   <span>{selectedService?.name}</span>
                 </div>
                 <div className="summary-row">
-                  <span>Device:</span>
-                  <span>{deviceInfo.brand} {deviceInfo.model}</span>
+                  <span>Priority:</span>
+                  <span>{PRIORITY_LEVELS.find(p => p.id === priorityLevel)?.name}</span>
                 </div>
+                <div className="summary-row">
+                  <span>Service Type:</span>
+                  <span>{SERVICE_TYPES.find(s => s.id === serviceType)?.label}</span>
+                </div>
+                {needsAddress && (
+                  <div className="summary-row">
+                    <span>Address:</span>
+                    <span>{address.line1}, {address.city}, {address.state} {address.zip}</span>
+                  </div>
+                )}
                 <div className="summary-row">
                   <span>Date:</span>
                   <span>{new Date(selectedDate + 'T00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
@@ -485,22 +618,18 @@ export default function BookingPage() {
                   <span>Time:</span>
                   <span>{selectedTimeSlot?.name} ({selectedTimeSlot?.startTime})</span>
                 </div>
-                <div className="summary-row">
-                  <span>Priority:</span>
-                  <span>{PRIORITY_LEVELS.find(p => p.id === priorityLevel)?.name}</span>
-                </div>
                 <div className="summary-row total">
                   <span>Estimated Total:</span>
-                  <span>${(selectedService?.priceMin || 0) + (PRIORITY_LEVELS.find(p => p.id === priorityLevel)?.fee || 0)} - ${(selectedService?.priceMax || 0) + (PRIORITY_LEVELS.find(p => p.id === priorityLevel)?.fee || 0)}</span>
+                  <span>${calculateTotal().min} - ${calculateTotal().max}</span>
                 </div>
               </div>
             </motion.div>
           )}
 
-          {/* Step 5: Confirmation */}
-          {currentStep === 5 && bookingResult && (
+          {/* Step 4: Confirmation */}
+          {currentStep === 4 && bookingResult && (
             <motion.div
-              key="step5"
+              key="step4"
               className="step-container confirmation"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -533,6 +662,11 @@ export default function BookingPage() {
                   <span>{deviceInfo.brand} {deviceInfo.model}</span>
                 </div>
                 <div className="detail-row">
+                  {SERVICE_TYPES.find(s => s.id === serviceType)?.icon &&
+                    React.createElement(SERVICE_TYPES.find(s => s.id === serviceType).icon, { size: 18 })}
+                  <span>{SERVICE_TYPES.find(s => s.id === serviceType)?.label}</span>
+                </div>
+                <div className="detail-row">
                   <Calendar size={18} />
                   <span>{new Date(selectedDate + 'T00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</span>
                 </div>
@@ -560,10 +694,10 @@ export default function BookingPage() {
       </main>
 
       {/* Footer with navigation buttons */}
-      {currentStep < 5 && (
+      {currentStep < 4 && (
         <footer className="booking-footer">
-          <button 
-            className="btn-secondary" 
+          <button
+            className="btn-secondary"
             onClick={handlePrevious}
             disabled={currentStep === 1}
           >
@@ -571,9 +705,9 @@ export default function BookingPage() {
             Back
           </button>
 
-          {currentStep < 4 ? (
-            <button 
-              className="btn-primary" 
+          {currentStep < 3 ? (
+            <button
+              className="btn-primary"
               onClick={handleNext}
               disabled={!validateStep(currentStep)}
             >
@@ -581,8 +715,8 @@ export default function BookingPage() {
               <ArrowRight size={18} />
             </button>
           ) : (
-            <button 
-              className="btn-primary confirm" 
+            <button
+              className="btn-primary confirm"
               onClick={handleSubmit}
               disabled={!validateStep(currentStep) || isSubmitting}
             >

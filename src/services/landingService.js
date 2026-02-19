@@ -22,22 +22,21 @@ export const clearLandingCache = () => {
 };
 
 /**
- * Fetch with retry logic for reliability (no timeout - let Supabase handle it)
+ * Fetch with retry logic for reliability (optimized for speed)
  * @param {Function} queryFn - async function that returns { data, error }
- * @param {number} retries - number of retries (default 2)
+ * @param {number} retries - number of retries (default 1 for speed)
  * @returns {Promise<any>} - resolved data or null
  */
-const fetchWithRetry = async (queryFn, retries = 2) => {
+const fetchWithRetry = async (queryFn, retries = 1) => {
     for (let i = 0; i <= retries; i++) {
         try {
             const { data, error } = await queryFn();
             if (error) {
-                // Only log on final retry to reduce noise
                 if (i === retries) {
-                    console.warn(`Supabase query failed after ${retries + 1} attempts:`, error.message);
+                    console.warn(`Supabase query failed:`, error.message);
                 }
                 if (i < retries) {
-                    await new Promise(r => setTimeout(r, 500 * (i + 1))); // Exponential backoff
+                    await new Promise(r => setTimeout(r, 200)); // Fast retry
                     continue;
                 }
                 return null;
@@ -45,10 +44,10 @@ const fetchWithRetry = async (queryFn, retries = 2) => {
             return data;
         } catch (e) {
             if (i === retries) {
-                console.warn(`Fetch failed after ${retries + 1} attempts:`, e.message);
+                console.warn(`Fetch failed:`, e.message);
             }
             if (i < retries) {
-                await new Promise(r => setTimeout(r, 500 * (i + 1)));
+                await new Promise(r => setTimeout(r, 200)); // Fast retry
             }
         }
     }

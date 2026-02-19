@@ -67,7 +67,7 @@ const PricingTable = ({ sectionHeader }) => {
                                     <span className="price-to">{card.priceTo}</span>
                                 </div>
                                 <p className="card-description">{card.description}</p>
-                                <Link to="/booking" className="card-cta">
+                                <Link to="/book" className="card-cta">
                                     Get Quote <ArrowRight size={16} />
                                 </Link>
                             </motion.div>

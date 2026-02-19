@@ -20,6 +20,13 @@ const DEVICE_TYPES = [
     { id: 'computer', label: 'Computer', icon: Laptop },
 ];
 
+// Service types (how repair is done)
+const SERVICE_TYPES = [
+    { id: 'we-come-to-you', label: 'We Come To You', description: 'Technician visits your location', needsAddress: true },
+    { id: 'pickup-delivery', label: 'Pickup & Delivery', description: 'We pick up and deliver back', needsAddress: true },
+    { id: 'visit-shop', label: 'Visit Our Shop', description: 'Walk in - no appointment needed', needsAddress: false },
+];
+
 // Priority levels
 const PRIORITY_LEVELS = [
     { id: 'regular', name: 'Standard', fee: 0, icon: Clock },
@@ -42,6 +49,8 @@ const Booking = () => {
         deviceModel: '',
         serviceId: '',
         serviceName: '',
+        serviceType: '', // we-come-to-you, pickup-delivery, visit-shop
+        address: '', // for we-come-to-you and pickup-delivery
         issue: '',
         priorityLevel: 'regular',
         date: '',
@@ -127,7 +136,14 @@ const Booking = () => {
 
     const getMinDate = () => new Date().toISOString().split('T')[0];
 
-    const canProceedStep1 = () => formData.deviceType && formData.deviceBrand.trim() && formData.deviceModel.trim() && formData.serviceId && formData.issue.trim();
+    const canProceedStep1 = () => {
+        const baseValid = formData.deviceType && formData.deviceBrand.trim() && formData.deviceModel.trim() && formData.serviceId && formData.issue.trim() && formData.serviceType;
+        const selectedType = SERVICE_TYPES.find(t => t.id === formData.serviceType);
+        if (selectedType?.needsAddress) {
+            return baseValid && formData.address?.trim().length > 5;
+        }
+        return baseValid;
+    };
     const canProceedStep2 = () => formData.date && formData.timeSlotId;
     const canConfirmBooking = () => {
         const basicValid = formData.name.trim() && formData.email.trim() && formData.phone.trim();
@@ -295,6 +311,39 @@ const Booking = () => {
                                             onChange={handleChange}
                                         ></textarea>
                                     </div>
+
+                                    {/* Service Type Selection */}
+                                    <div className="section-group">
+                                        <label className="section-label">How would you like us to help? *</label>
+                                        <div className="service-type-options">
+                                            {SERVICE_TYPES.map((type) => (
+                                                <button
+                                                    type="button"
+                                                    key={type.id}
+                                                    className={`service-type-card ${formData.serviceType === type.id ? 'selected' : ''}`}
+                                                    onClick={() => setFormData(prev => ({ ...prev, serviceType: type.id, address: type.needsAddress ? prev.address : '' }))}
+                                                >
+                                                    <div className="service-type-label">{type.label}</div>
+                                                    <div className="service-type-desc">{type.description}</div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Address Field - Only for We Come To You or Pickup & Delivery */}
+                                    {SERVICE_TYPES.find(t => t.id === formData.serviceType)?.needsAddress && (
+                                        <div className="form-group address-group">
+                                            <label>Your Address *</label>
+                                            <textarea
+                                                name="address"
+                                                placeholder="Enter your full address (street, city, zip code)"
+                                                rows="2"
+                                                value={formData.address}
+                                                onChange={handleChange}
+                                            ></textarea>
+                                            <small className="form-hint">We'll send a technician to this location</small>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 

@@ -780,6 +780,143 @@
   cursor: not-allowed;
 }
 
+/* ==================== SECTION DIVIDER ==================== */
+.section-divider {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.section-divider h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+  color: var(--text-primary);
+}
+
+/* ==================== SERVICE TYPES ==================== */
+.service-types {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.service-type-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.service-type-card:hover {
+  background: var(--bg-secondary);
+  border-color: var(--accent-primary);
+}
+
+.service-type-card.selected {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
+}
+
+.service-type-card svg {
+  color: #6366f1;
+  flex-shrink: 0;
+}
+
+.service-type-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.service-type-label {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.service-type-desc {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.service-type-fee {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #10b981;
+  padding: 0.25rem 0.5rem;
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: 6px;
+}
+
+.service-type-check {
+  color: #6366f1;
+  position: absolute;
+  right: 1rem;
+}
+
+/* ==================== ADDRESS SECTION ==================== */
+.address-section {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+}
+
+.address-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 1rem 0;
+  color: var(--text-primary);
+}
+
+.address-section h3 svg {
+  color: #6366f1;
+}
+
+.address-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+@media (max-width: 600px) {
+  .address-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==================== SCHEDULE SECTION ==================== */
+.schedule-section {
+  margin-top: 1.5rem;
+}
+
+.schedule-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 1rem 0;
+  color: var(--text-primary);
+}
+
+.schedule-section h3 svg {
+  color: #6366f1;
+}
+
 /* ==================== RESPONSIVE ADJUSTMENTS ==================== */
 @media (max-width: 400px) {
   .booking-content {

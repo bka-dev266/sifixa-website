@@ -109,7 +109,7 @@ const Navbar = () => {
                                 <span>Login</span>
                             </Link>
                         )}
-                        <Link to="/booking" onClick={() => setIsOpen(false)}>
+                        <Link to="/book" onClick={() => setIsOpen(false)}>
                             <Button variant="primary">Book Repair</Button>
                         </Link>
                     </div>

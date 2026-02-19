@@ -95,7 +95,7 @@ const Home = () => {
                         <h2 className="section-title">{ctaSection?.title || 'Ready to get your device fixed?'}</h2>
                         <p className="section-subtitle">{ctaSection?.subtitle || 'Book a repair now and get your device back in perfect condition.'}</p>
                         <div className="cta-buttons">
-                            <Link to={ctaSection?.content?.primaryButtonLink || '/booking'} className="btn btn-primary btn-lg">
+                            <Link to={ctaSection?.content?.primaryButtonLink || '/book'} className="btn btn-primary btn-lg">
                                 {ctaSection?.content?.primaryButtonText || 'Book Repair Now'}
                             </Link>
                             <Link to={ctaSection?.content?.secondaryButtonLink || '/contact'} className="btn btn-secondary btn-lg">

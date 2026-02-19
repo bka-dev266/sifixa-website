@@ -317,6 +317,9 @@ export const appointmentsApi = {
 
         if (storeId) {
             slotsQuery = slotsQuery.eq('store_id', storeId);
+        } else {
+            // Only get global time slots (not store-specific ones)
+            slotsQuery = slotsQuery.is('store_id', null);
         }
 
         const { data: slots, error: slotsError } = await slotsQuery;

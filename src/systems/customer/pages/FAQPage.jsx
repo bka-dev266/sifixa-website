@@ -31,7 +31,7 @@ const FAQPage = () => {
                         <p>Our team is here to help. Contact us for personalized assistance.</p>
                         <div className="faq-cta-buttons">
                             <Link to="/contact" className="btn btn-primary">Contact Us</Link>
-                            <Link to="/booking" className="btn btn-outline">Book a Repair</Link>
+                            <Link to="/book" className="btn btn-outline">Book a Repair</Link>
                         </div>
                     </div>
                 </div>

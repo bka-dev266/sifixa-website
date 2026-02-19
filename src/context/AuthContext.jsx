@@ -57,6 +57,9 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
             console.error('Logout error:', error);
         } finally {
+            // Clear session persistence flags
+            sessionStorage.removeItem('rememberMe');
+            localStorage.removeItem('wasLoggedIn');
             setUser(null);
             setProfile(null);
             setRole(null);
@@ -74,7 +77,22 @@ export const AuthProvider = ({ children }) => {
         const initAuth = async () => {
             try {
                 const session = await authService.getSession();
+
+                // Check if user should stay logged in
+                // If rememberMe was NOT checked AND this is a page refresh, log out
+                const shouldRemember = sessionStorage.getItem('rememberMe') === 'true';
+                const wasLoggedIn = localStorage.getItem('wasLoggedIn') === 'true';
+
                 if (session?.user) {
+                    // If user previously logged in without rememberMe and this is a new session (page refresh), log them out
+                    if (wasLoggedIn && !shouldRemember) {
+                        console.log('Session found but rememberMe was not checked - logging out');
+                        await authService.signOut();
+                        localStorage.removeItem('wasLoggedIn');
+                        setLoading(false);
+                        return;
+                    }
+
                     setUser(session.user);
                     await loadUserData(session.user);
                     setSessionExpiry(Date.now() + SESSION_TIMEOUT);
@@ -155,7 +173,7 @@ export const AuthProvider = ({ children }) => {
         };
     }, [user]);
 
-    const login = async (email, password) => {
+    const login = async (email, password, rememberMe = false) => {
         try {
             const { user: authUser, session, error } = await authService.signIn(email, password);
 
@@ -164,6 +182,17 @@ export const AuthProvider = ({ children }) => {
             }
 
             if (authUser) {
+                // Store rememberMe preference
+                // sessionStorage is cleared when browser closes
+                // localStorage persists across sessions
+                if (rememberMe) {
+                    sessionStorage.setItem('rememberMe', 'true');
+                    localStorage.setItem('wasLoggedIn', 'true');
+                } else {
+                    sessionStorage.removeItem('rememberMe');
+                    localStorage.setItem('wasLoggedIn', 'true');
+                }
+
                 setUser({
                     ...authUser,
                     name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email?.split('@')[0]
