@@ -845,18 +845,34 @@
 
 [data-theme="light"] .booking-header,
 [data-theme="light"] .booking-footer {
-    background: rgba(255, 255, 255, 0.9);
-    border-color: rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(20px);
+    border-color: rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 [data-theme="light"] .back-btn {
     background: rgba(0, 0, 0, 0.04);
     border-color: rgba(0, 0, 0, 0.1);
+    color: #475569;
+}
+
+[data-theme="light"] .back-btn:hover {
+    background: rgba(0, 0, 0, 0.08);
+    color: #1e293b;
+    border-color: rgba(0, 0, 0, 0.2);
 }
 
 [data-theme="light"] .step-dot {
     background: rgba(0, 0, 0, 0.04);
-    border-color: rgba(0, 0, 0, 0.1);
+    border-color: rgba(0, 0, 0, 0.12);
+    color: #64748b;
+}
+
+[data-theme="light"] .step-info {
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.08);
+    color: #64748b;
 }
 
 [data-theme="light"] .device-btn,
@@ -865,13 +881,66 @@
 [data-theme="light"] .slot-btn {
     background: rgba(255, 255, 255, 0.8);
     border-color: rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .device-btn:hover,
+[data-theme="light"] .slot-btn:hover:not(.disabled) {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(59, 130, 246, 0.4);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .device-btn.selected {
+    background: rgba(59, 130, 246, 0.08);
+    border-color: #3b82f6;
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.15);
+}
+
+[data-theme="light"] .priority-btn:hover {
+    background: rgba(139, 92, 246, 0.06);
+    border-color: rgba(139, 92, 246, 0.3);
+}
+
+[data-theme="light"] .priority-btn.selected {
+    background: rgba(139, 92, 246, 0.08);
+}
+
+[data-theme="light"] .slot-btn.selected {
+    background: rgba(59, 130, 246, 0.06);
+}
+
+[data-theme="light"] .device-btn::before {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.06), rgba(139, 92, 246, 0.04));
 }
 
 [data-theme="light"] .input-group input,
 [data-theme="light"] .input-group textarea,
 [data-theme="light"] .date-input {
-    background: rgba(255, 255, 255, 0.9);
+    background: #ffffff;
     border-color: rgba(0, 0, 0, 0.15);
+    color: #1e293b;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .service-select {
+    background-color: #ffffff;
+    border-color: rgba(0, 0, 0, 0.15);
+    color: #1e293b;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .service-select:hover {
+    border-color: rgba(59, 130, 246, 0.4);
+}
+
+[data-theme="light"] .service-select:focus {
+    background-color: #ffffff;
+    border-color: #3b82f6;
+}
+
+[data-theme="light"] .service-select option {
+    background: #ffffff;
     color: #1e293b;
 }
 
@@ -881,10 +950,112 @@
     color: #1e293b;
 }
 
+[data-theme="light"] .btn-secondary:hover {
+    background: rgba(0, 0, 0, 0.08);
+    border-color: rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="light"] .step-header {
+    border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
 [data-theme="light"] .step-header h2 {
     background: linear-gradient(90deg, #1e293b, #475569);
     -webkit-background-clip: text;
     background-clip: text;
+}
+
+[data-theme="light"] .section-label {
+    color: #64748b;
+}
+
+[data-theme="light"] .booking-summary {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(139, 92, 246, 0.03));
+    border-color: rgba(59, 130, 246, 0.15);
+}
+
+[data-theme="light"] .summary-row span:first-child {
+    color: #64748b;
+}
+
+[data-theme="light"] .summary-row span:last-child {
+    color: #1e293b;
+}
+
+[data-theme="light"] .summary-row.total {
+    border-top-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .summary-row.total span:last-child {
+    color: #16a34a;
+}
+
+[data-theme="light"] .logged-notice {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.08), rgba(34, 197, 94, 0.03));
+    border-color: rgba(34, 197, 94, 0.2);
+    color: #16a34a;
+}
+
+[data-theme="light"] .logged-notice strong {
+    color: #1e293b;
+}
+
+[data-theme="light"] .account-toggle {
+    background: rgba(0, 0, 0, 0.02);
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .account-fields {
+    border-top-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .hint-text {
+    background: rgba(0, 0, 0, 0.02);
+    border-color: rgba(0, 0, 0, 0.1);
+    color: #64748b;
+}
+
+[data-theme="light"] .success-content h2 {
+    background: linear-gradient(90deg, #1e293b, #475569);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+[data-theme="light"] .tracking-box {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.06), rgba(59, 130, 246, 0.03));
+    border-color: rgba(59, 130, 246, 0.15);
+}
+
+[data-theme="light"] .tracking-box button {
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.1);
+    color: #64748b;
+}
+
+[data-theme="light"] .tracking-box button:hover {
+    background: rgba(0, 0, 0, 0.08);
+    color: #1e293b;
+}
+
+[data-theme="light"] .slot-status.available {
+    color: #16a34a;
+    background: rgba(22, 163, 106, 0.08);
+}
+
+[data-theme="light"] .slot-status.limited {
+    color: #d97706;
+    background: rgba(217, 119, 6, 0.08);
+}
+
+[data-theme="light"] .slot-status.full {
+    color: #dc2626;
+    background: rgba(220, 38, 38, 0.08);
+}
+
+[data-theme="light"] .loading-box .spinner {
+    border-color: rgba(59, 130, 246, 0.15);
+    border-top-color: #3b82f6;
 }
 
 /* ==================== SERVICE TYPE SELECTION ==================== */

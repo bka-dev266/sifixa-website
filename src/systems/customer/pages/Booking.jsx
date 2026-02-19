@@ -467,15 +467,36 @@ const Booking = () => {
                             )}
 
                             {/* Summary */}
-                            <div className="booking-summary">
-                                <div className="summary-row"><span>Device</span><span>{formData.deviceBrand} {formData.deviceModel}</span></div>
-                                <div className="summary-row"><span>Service</span><span>{formData.serviceName}</span></div>
-                                <div className="summary-row"><span>Date/Time</span><span>{formData.date} • {formData.time}</span></div>
-                                <div className="summary-row total">
-                                    <span>Estimated</span>
-                                    <span>{selectedService ? `$${selectedService.priceMin + priorityFee} - $${selectedService.priceMax + priorityFee}` : '--'}</span>
-                                </div>
-                            </div>
+                            {(() => {
+                                const selService = availableServices.find(s => s.id === formData.serviceId);
+                                const priFee = PRIORITY_LEVELS.find(p => p.id === formData.priorityLevel)?.fee || 0;
+                                const needsAddress = SERVICE_TYPES.find(t => t.id === formData.serviceType)?.needsAddress;
+                                const deliveryFee = needsAddress ? 15 : 0;
+                                return (
+                                    <div className="booking-summary">
+                                        <div className="summary-row"><span>Device</span><span>{DEVICE_TYPES.find(d => d.id === formData.deviceType)?.label || '—'} — {formData.deviceBrand} {formData.deviceModel}</span></div>
+                                        <div className="summary-row"><span>Service</span><span>{formData.serviceName || '—'}</span></div>
+                                        <div className="summary-row"><span>Date & Time</span><span>{formData.date ? new Date(formData.date + 'T00:00:00').toLocaleDateString() : '—'} • {formData.time || '—'}</span></div>
+                                        <div className="summary-row"><span>Service Type</span><span>{SERVICE_TYPES.find(t => t.id === formData.serviceType)?.label || '—'}</span></div>
+                                        {formData.address && (
+                                            <div className="summary-row"><span>Address</span><span>{formData.address}</span></div>
+                                        )}
+                                        {selService && (
+                                            <div className="summary-row"><span>Service Estimate</span><span>${selService.priceMin} - ${selService.priceMax}</span></div>
+                                        )}
+                                        {deliveryFee > 0 && (
+                                            <div className="summary-row"><span>Delivery Fee</span><span>$15</span></div>
+                                        )}
+                                        {priFee > 0 && (
+                                            <div className="summary-row"><span>Priority Fee</span><span>+${priFee}</span></div>
+                                        )}
+                                        <div className="summary-row total">
+                                            <span>Estimated Total</span>
+                                            <span>{selService ? `From $${selService.priceMin + priFee + deliveryFee}` : '—'}</span>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
                         </motion.div>
                     )}
 

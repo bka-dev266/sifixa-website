@@ -48,7 +48,6 @@ function App() {
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/book-repair" element={<BookingWizard />} />
                   <Route path="/track" element={<TrackBooking />} />
-                  <Route path="/sell" element={<SellDevice />} />
                   <Route path="/privacy" element={<PrivacyPolicy />} />
                   <Route path="/terms" element={<TermsOfUse />} />
                   <Route path="/refund" element={<RefundPolicy />} />
@@ -74,6 +73,9 @@ function App() {
                 {/* Booking Page (Standalone full-screen wizard) */}
                 <Route path="/booking" element={<Booking />} />
                 <Route path="/book" element={<BookingWizard />} />
+
+                {/* Sell Device Page (Standalone full-screen wizard) */}
+                <Route path="/sell" element={<SellDevice />} />
 
                 {/* System 2: Staff Portal (Private Dashboards) */}
 
