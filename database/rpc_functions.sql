@@ -121,6 +121,8 @@ RETURNS TABLE (
     device_brand TEXT,
     device_model TEXT,
     store_name TEXT,
+    notes TEXT,
+    time_slot_name TEXT,
     created_at TIMESTAMPTZ
 ) AS $$
 BEGIN
@@ -128,11 +130,13 @@ BEGIN
     SELECT 
         a.id, a.tracking_number, a.status, a.scheduled_date, a.priority_level,
         c.first_name || ' ' || COALESCE(c.last_name, ''),
-        c.email, c.phone, d.device_type, d.brand, d.model, s.name, a.created_at
+        c.email, c.phone, d.device_type, d.brand, d.model, s.name,
+        a.notes, ts.name, a.created_at
     FROM appointments a
     LEFT JOIN customers c ON c.id = a.customer_id
     LEFT JOIN devices d ON d.id = a.device_id
     LEFT JOIN stores s ON s.id = a.store_id
+    LEFT JOIN time_slots ts ON ts.id = a.time_slot_id
     WHERE 
         (p_search IS NULL OR a.tracking_number ILIKE '%' || p_search || '%' OR
          c.first_name ILIKE '%' || p_search || '%' OR c.email ILIKE '%' || p_search || '%')

@@ -111,7 +111,9 @@ const TrackBooking = () => {
                         phone: found.customer_phone
                     },
                     date: found.scheduled_date || found.date,
-                    time: found.scheduled_start || found.time
+                    time: found.time_slot_name || found.scheduled_start || found.time,
+                    issue: found.notes || found.issue,
+                    priorityLevel: found.priority_level || found.priorityLevel
                 };
                 setBooking(normalizedBooking);
 
@@ -305,7 +307,8 @@ const TrackBooking = () => {
                                     <h3>Device Information</h3>
                                     <p><strong>Tracking #:</strong> {booking.trackingNumber || 'N/A'}</p>
                                     <p><strong>Device:</strong> {getDeviceName(booking.device)}</p>
-                                    <p><strong>Issue:</strong> {booking.issue || booking.notes || 'N/A'}</p>
+                                    {booking.issue && <p><strong>Issue:</strong> {booking.issue}</p>}
+                                    {booking.priorityLevel && booking.priorityLevel !== 'regular' && <p><strong>Priority:</strong> {booking.priorityLevel}</p>}
                                 </motion.div>
 
                                 <motion.div
@@ -319,7 +322,8 @@ const TrackBooking = () => {
                                     </div>
                                     <h3>Appointment</h3>
                                     <p><strong>Date:</strong> {getBookingDate(booking)}</p>
-                                    <p><strong>Time:</strong> {booking.timeSlot?.name || booking.scheduledStart || booking.time || 'N/A'}</p>
+                                    <p><strong>Time:</strong> {booking.time || 'TBD'}</p>
+                                    {booking.store_name && <p><strong>Store:</strong> {booking.store_name}</p>}
                                 </motion.div>
 
                                 <motion.div
@@ -334,6 +338,7 @@ const TrackBooking = () => {
                                     <h3>Customer</h3>
                                     <p><strong>Name:</strong> {getCustomerName(booking.customer)}</p>
                                     <p><strong>Email:</strong> {booking.customer?.email || 'N/A'}</p>
+                                    {booking.customer?.phone && <p><strong>Phone:</strong> {booking.customer.phone}</p>}
                                 </motion.div>
                             </div>
 
